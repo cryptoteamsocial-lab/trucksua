@@ -5,6 +5,9 @@ import MissionsScene from './game/MissionsScene';
 import LootboxScene from './game/LootboxScene';
 import HallOfFameScene from './game/HallOfFameScene';
 import MerchScene from './game/MerchScene';
+import OnboardingScene from './game/OnboardingScene';
+import HelpScene from './game/HelpScene';
+import CollectionsScene from './game/CollectionsScene';
 import { CONFIG } from './game/config';
 import './style.css';
 
@@ -21,7 +24,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: CONFIG.HEIGHT,
   backgroundColor: CONFIG.COLORS.BG,
   parent: 'app',
-  scene: [GameScene, GarageScene, MissionsScene, LootboxScene, HallOfFameScene, MerchScene],
+  scene: [GameScene, GarageScene, MissionsScene, LootboxScene, HallOfFameScene, MerchScene, OnboardingScene, HelpScene, CollectionsScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

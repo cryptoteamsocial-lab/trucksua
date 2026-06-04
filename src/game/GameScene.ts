@@ -24,7 +24,7 @@ interface Enemy {
   dying?: boolean;
 }
 interface Bullet  { sprite: Phaser.GameObjects.Image; speed: number; dmg: number; }
-interface Obstacle { sprite: Phaser.GameObjects.Image; hw: number; hh: number; }
+interface Obstacle { sprite: Phaser.GameObjects.Image; hw: number; hh: number; isMine?: boolean; }
 interface AllyBonus { container: Phaser.GameObjects.Container; type: 'ally' | 'repair'; }
 interface AllyVehicle { container: Phaser.GameObjects.Container; shootTimer: number; targetX: number; targetY: number; }
 interface Particle { sprite: Phaser.GameObjects.Image; vx: number; vy: number; life: number; maxLife: number; }
@@ -107,7 +107,13 @@ export default class GameScene extends Phaser.Scene {
     this.createHUD();
     this.createPlayer();
     this.setupInput();
-    this.showMenu();
+
+    const data = loadData();
+    if (!data.onboardingDone) {
+      this.scene.start('OnboardingScene');
+    } else {
+      this.showMenu();
+    }
   }
 
   private createBackground() {
@@ -265,9 +271,9 @@ export default class GameScene extends Phaser.Scene {
     const btnStartX = CONFIG.WIDTH / 2 - btnW - btnGap;
 
     const navDefs = [
-      { label: 'ГАРАЖ',   color: 0x0d2200, border: 0x44aa00, textCol: '#88ff44', x: btnStartX, cb: () => { this.clearMenu(); this.scene.start('GarageScene'); } },
-      { label: 'МІСІЇ',   color: 0x1a0a22, border: 0x773399, textCol: '#cc88ff', x: CONFIG.WIDTH / 2, cb: () => { this.clearMenu(); this.scene.start('MissionsScene'); } },
-      { label: 'СЛАВА',   color: 0x0a0a22, border: 0x3333aa, textCol: '#6666ff', x: btnStartX + (btnW + btnGap) * 2, cb: () => { this.clearMenu(); this.scene.start('HallOfFameScene'); } },
+      { label: 'ГАРАЖ',  color: 0x0d2200, border: 0x44aa00, textCol: '#88ff44', x: btnStartX, cb: () => { this.clearMenu(); this.scene.start('GarageScene'); } },
+      { label: 'МІСІЇ',  color: 0x1a0a22, border: 0x773399, textCol: '#cc88ff', x: CONFIG.WIDTH / 2, cb: () => { this.clearMenu(); this.scene.start('MissionsScene'); } },
+      { label: 'СЛАВА',  color: 0x0a0a22, border: 0x3333aa, textCol: '#6666ff', x: btnStartX + (btnW + btnGap) * 2, cb: () => { this.clearMenu(); this.scene.start('HallOfFameScene'); } },
     ];
 
     const navObjs: Phaser.GameObjects.GameObject[] = [];
@@ -281,13 +287,27 @@ export default class GameScene extends Phaser.Scene {
       navObjs.push(b, t);
     });
 
-    // Merch button
-    const merchBg = this.add.rectangle(CONFIG.WIDTH / 2, 576, 180, 42, 0x1a1000).setDepth(21)
-      .setStrokeStyle(2, 0x775500).setInteractive({ useHandCursor: true });
-    const merchT = this.add.text(CONFIG.WIDTH / 2, 576, '🛍 МЕРЧ', { fontSize: '15px', color: '#ccaa44', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
-    merchBg.on('pointerdown', () => { this.clearMenu(); this.scene.start('MerchScene'); });
-    merchBg.on('pointerover', () => merchBg.setFillStyle(0x2a1e00));
-    merchBg.on('pointerout',  () => merchBg.setFillStyle(0x1a1000));
+    // Bottom row: Merch + Help + Collections
+    const row2Y = 578;
+    const row2W = 110, row2Gap = 8;
+    const row2StartX = CONFIG.WIDTH / 2 - row2W - row2Gap;
+
+    const row2Defs = [
+      { label: '🛍 МЕРЧ',  color: 0x1a1000, border: 0x775500, textCol: '#ccaa44', x: row2StartX, cb: () => { this.clearMenu(); this.scene.start('MerchScene'); } },
+      { label: '🚗 ЗБОРИ', color: 0x0a1520, border: 0x3377cc, textCol: '#88ccff', x: CONFIG.WIDTH / 2, cb: () => { this.clearMenu(); this.scene.start('CollectionsScene'); } },
+      { label: '❓ ДОВІДКА', color: 0x111111, border: 0x444444, textCol: '#888888', x: row2StartX + (row2W + row2Gap) * 2, cb: () => { this.clearMenu(); this.scene.start('HelpScene'); } },
+    ];
+
+    const row2Objs: Phaser.GameObjects.GameObject[] = [];
+    row2Defs.forEach(n => {
+      const b = this.add.rectangle(n.x, row2Y, row2W, 42, n.color).setDepth(21).setStrokeStyle(2, n.border).setInteractive({ useHandCursor: true });
+      const t = this.add.text(n.x, row2Y, n.label, { fontSize: '12px', color: n.textCol, fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
+      b.on('pointerdown', n.cb);
+      b.on('pointerover', () => b.setAlpha(0.8));
+      b.on('pointerout',  () => b.setAlpha(1));
+      row2Objs.push(b, t);
+    });
+    const merchBg = row2Objs[0], merchT = row2Objs[1]; // keep refs for menuObjects array
 
     // Last donated cars
     this.add.rectangle(CONFIG.WIDTH / 2, 624, CONFIG.WIDTH - 24, 1, 0x1a2a3a).setDepth(21);
@@ -308,8 +328,8 @@ export default class GameScene extends Phaser.Scene {
 
     this.menuObjects = [
       bg, title, sub, flagB, flagY, charityBg, donateBg, playBg, playT,
-      statsBg, statsT, demo, merchBg, merchT,
-      ...navObjs, ...histObjs, ver,
+      statsBg, statsT, demo,
+      ...navObjs, ...row2Objs, ...histObjs, ver,
     ];
 
     if (dailyReward !== null) {
@@ -344,43 +364,6 @@ export default class GameScene extends Phaser.Scene {
     bg.setInteractive().on('pointerdown', close);
 
     this.tweens.add({ targets: box, scaleX: { from: 0.6, to: 1 }, scaleY: { from: 0.6, to: 1 }, duration: 300, ease: 'Back.Out' });
-  }
-
-  private showLeaderboard() {
-    const data = loadData();
-    const D = 28;
-    const bg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x000000, 0.7).setDepth(D);
-    const box = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2, 340, 560, 0x080c14).setDepth(D)
-      .setStrokeStyle(2, 0xffd700);
-    const title = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 250, '🏆 LEADERBOARD', {
-      fontSize: '20px', color: '#ffd700', fontFamily: 'monospace',
-    }).setOrigin(0.5).setDepth(D + 1);
-
-    const rows = data.leaderboard.length > 0
-      ? data.leaderboard.map((e, i) =>
-          `${i + 1}.  $${e.coins}   x${e.killed}   [${e.convoy}]   ${e.date}`
-        ).join('\n')
-      : 'No runs yet.\nPlay and set a record!';
-
-    const header = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 210, '#    Coins   Kills  Fleet  Date', {
-      fontSize: '11px', color: '#446644', fontFamily: 'monospace',
-    }).setOrigin(0.5).setDepth(D + 1);
-
-    const rowsTxt = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 100, rows, {
-      fontSize: '13px', color: '#ccffcc', fontFamily: 'monospace', align: 'left',
-      lineSpacing: 8,
-    }).setOrigin(0.5).setDepth(D + 1);
-
-    const closeBg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 + 240, 160, 44, 0x111111)
-      .setDepth(D + 1).setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true });
-    const closeT = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 + 240, '< Close', {
-      fontSize: '16px', color: '#888888', fontFamily: 'monospace',
-    }).setOrigin(0.5).setDepth(D + 2);
-
-    const objs = [bg, box, title, header, rowsTxt, closeBg, closeT];
-    const close = () => objs.forEach(o => o.destroy());
-    closeBg.on('pointerdown', close);
-    bg.setInteractive().on('pointerdown', close);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -560,17 +543,17 @@ export default class GameScene extends Phaser.Scene {
     const right = CONFIG.ROAD_X + CONFIG.ROAD_WIDTH - 26;
     const x = Phaser.Math.Between(left, right);
 
-    let hp = 1, speed = 100 * this.difficultyScale, coins = CONFIG.COINS_WALKER;
+    let hp = 2, speed = 120 * this.difficultyScale, coins = CONFIG.COINS_WALKER;
     let key = 'walker';
     let vx = 0;
 
     if (type === 'HEAVY') {
-      hp = 3; speed = 58 * this.difficultyScale; coins = CONFIG.COINS_HEAVY; key = 'heavy';
+      hp = 5; speed = 65 * this.difficultyScale; coins = CONFIG.COINS_HEAVY; key = 'heavy';
     } else if (type === 'RUNNER') {
-      hp = 1; speed = 220 * this.difficultyScale; coins = CONFIG.COINS_RUNNER; key = 'runner';
-      vx = Phaser.Math.FloatBetween(-60, 60);
+      hp = 1; speed = 260 * this.difficultyScale; coins = CONFIG.COINS_RUNNER; key = 'runner';
+      vx = Phaser.Math.FloatBetween(-80, 80);
     } else if (type === 'BOMBER') {
-      hp = 2; speed = 70 * this.difficultyScale; coins = CONFIG.COINS_BOMBER; key = 'bomber';
+      hp = 3; speed = 80 * this.difficultyScale; coins = CONFIG.COINS_BOMBER; key = 'bomber';
     }
 
     const sprite = this.add.image(0, 0, key);
@@ -699,10 +682,14 @@ export default class GameScene extends Phaser.Scene {
 
   private spawnObstacle() {
     const x = Phaser.Math.Between(CONFIG.ROAD_X + 22, CONFIG.ROAD_X + CONFIG.ROAD_WIDTH - 22);
-    const keys = ['obs_block', 'obs_crate', 'obs_barr'];
-    const key = keys[Phaser.Math.Between(0, 2)];
+    const isMine = Math.random() < 0.25; // 25% chance to be a mine
+    const key = isMine ? 'obs_mine' : ['obs_block', 'obs_crate', 'obs_barr'][Phaser.Math.Between(0, 2)];
     const sprite = this.add.image(x, -40, key).setDepth(3);
-    this.obstacles.push({ sprite, hw: sprite.width / 2 - 2, hh: sprite.height / 2 - 2 });
+    if (isMine) {
+      // Mines pulse to be visible
+      this.tweens.add({ targets: sprite, scaleX: 1.2, scaleY: 1.2, duration: 400, yoyo: true, repeat: -1 });
+    }
+    this.obstacles.push({ sprite, hw: sprite.width / 2 - 2, hh: sprite.height / 2 - 2, isMine });
   }
 
   private updateObstacles(delta: number) {
@@ -713,8 +700,11 @@ export default class GameScene extends Phaser.Scene {
       o.sprite.y += speed * dt;
       if (o.sprite.y > CONFIG.HEIGHT + 50) { o.sprite.destroy(); this.obstacles.splice(i, 1); continue; }
       if (this.ov2(o.sprite.x, o.sprite.y, o.hw * 2, o.hh * 2, this.playerX, this.playerY, CONFIG.PLAYER_W - 4, CONFIG.PLAYER_H - 8)) {
-        this.damagePlayer(CONFIG.COLLISION_DAMAGE);
-        this.spawnParticles(o.sprite.x, o.sprite.y, 'particle_exp', 6);
+        const dmg = o.isMine ? 25 : CONFIG.COLLISION_DAMAGE;
+        this.damagePlayer(dmg);
+        this.spawnParticles(o.sprite.x, o.sprite.y, 'particle_exp', o.isMine ? 14 : 6);
+        if (o.isMine) this.cameras.main.shake(300, 0.015);
+        this.tweens.killTweensOf(o.sprite);
         o.sprite.destroy(); this.obstacles.splice(i, 1);
       }
     }
@@ -803,8 +793,14 @@ export default class GameScene extends Phaser.Scene {
       else if (roll < 0.32)  type = 'RUNNER';
       else if (roll < 0.44)  type = 'BOMBER';
       this.spawnEnemy(type);
-      if (Math.random() < 0.28) {
-        this.time.delayedCall(300, () => { if (this.state === 'PLAYING') this.spawnEnemy('WALKER'); });
+      // Double spawn more often at higher difficulty
+      if (Math.random() < 0.35 + this.difficultyScale * 0.08) {
+        const t2: EnemyType = Math.random() < 0.3 ? 'RUNNER' : 'WALKER';
+        this.time.delayedCall(280, () => { if (this.state === 'PLAYING') this.spawnEnemy(t2); });
+      }
+      // Triple spawn at high difficulty
+      if (this.difficultyScale >= 2 && Math.random() < 0.2) {
+        this.time.delayedCall(560, () => { if (this.state === 'PLAYING') this.spawnEnemy('WALKER'); });
       }
     }
 
@@ -815,17 +811,19 @@ export default class GameScene extends Phaser.Scene {
       this.spawnObstacle();
     }
 
-    // ALLY bonus
+    // ALLY bonus — rare, 10% chance when timer fires, max 3 allies
     this.allyBonusTimer += delta;
     if (this.allyBonusTimer >= this.allyBonusInterval) {
       this.allyBonusTimer = 0;
       this.allyBonusInterval = Phaser.Math.Between(CONFIG.ALLY_BONUS_INTERVAL_MIN, CONFIG.ALLY_BONUS_INTERVAL_MAX);
-      this.spawnAllyBonus('ally');
+      if (Math.random() < 0.10 && this.allies.length < CONFIG.MAX_ALLIES) {
+        this.spawnAllyBonus('ally');
+      }
     }
 
-    // Repair bonus — every 20s
+    // Repair bonus — every 30s
     this.repairBonusTimer += delta;
-    if (this.repairBonusTimer >= 20000) {
+    if (this.repairBonusTimer >= 30000) {
       this.repairBonusTimer = 0;
       this.spawnAllyBonus('repair');
     }
@@ -834,7 +832,9 @@ export default class GameScene extends Phaser.Scene {
   private updateLevel(delta: number) {
     this.levelTimer += delta;
     this.missionSurviveSeconds = this.levelTimer / 1000;
-    this.difficultyScale = 1 + (this.levelTimer / CONFIG.LEVEL_DURATION) * 0.9;
+    // Difficulty jumps every 30s, max ~2.5x at 90s
+    const stage = Math.floor(this.levelTimer / 30000);
+    this.difficultyScale = 1 + stage * 0.5;
     if (this.levelTimer >= CONFIG.LEVEL_DURATION) this.triggerVictory();
   }
 

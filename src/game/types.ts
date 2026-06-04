@@ -41,6 +41,7 @@ export interface SavedData {
   selectedVehicle: VehicleId;
   missions: Mission[];
   missionsDate: string;
+  onboardingDone: boolean;
 }
 
 declare global {

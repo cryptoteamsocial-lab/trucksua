@@ -16,6 +16,7 @@ const defaults: SavedData = {
   selectedVehicle: 'humvee',
   missions: [],
   missionsDate: '',
+  onboardingDone: false,
 };
 
 export function loadData(): SavedData {
@@ -32,6 +33,7 @@ export function loadData(): SavedData {
       selectedVehicle: parsed.selectedVehicle ?? 'humvee',
       missions: parsed.missions ?? [],
       missionsDate: parsed.missionsDate ?? '',
+      onboardingDone: parsed.onboardingDone ?? false,
     };
   } catch {
     return structuredClone(defaults);
@@ -76,14 +78,20 @@ export function upgradeLevel(id: keyof UpgradeData): boolean {
 }
 
 // ─── Vehicles ─────────────────────────────────────────────────────────────────
-export function buyVehicle(id: VehicleId, price: number): boolean {
+// Vehicles are unlocked via Telegram Stars (external payment). Call this after
+// Stars payment is confirmed to grant ownership.
+export function unlockVehicle(id: VehicleId): boolean {
   const data = loadData();
   if (data.ownedVehicles.includes(id)) return false;
-  if (data.totalCoins < price) return false;
-  data.totalCoins -= price;
   data.ownedVehicles.push(id);
   saveData(data);
   return true;
+}
+
+export function markOnboardingDone(): void {
+  const data = loadData();
+  data.onboardingDone = true;
+  saveData(data);
 }
 
 export function selectVehicle(id: VehicleId): void {

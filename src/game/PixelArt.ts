@@ -31,7 +31,7 @@ const P: Record<string, number | null> = {
   'p': 0x660099,      // runner dark purple
   'N': 0xdd6600,      // bomber orange
   'n': 0x994400,      // bomber dark orange
-  'Z': 0xffdd00,      // bomber warning yellow
+  'Z': 0xffdd00,      // warning yellow / Z marking
   'V': 0x22aa44,      // repair green
   'v': 0x116622,      // repair dark green
   'S': 0x5b8aa8,      // scout blue-grey
@@ -41,6 +41,8 @@ const P: Record<string, number | null> = {
   't': 0x5e4d2a,      // APC dark tan
   'q': 0x4a3d20,      // APC gun dark
   'к': 0x6e5c30,      // APC accent (cyrillic к used as unique key)
+  'M': 0x3d7a2d,      // orc military green - bright
+  'I': 0x1e5014,      // orc dark military green
 };
 
 function drawPixelArt(
@@ -69,32 +71,6 @@ function drawPixelArt(
 // ─── Sprites ──────────────────────────────────────────────────────────────────
 
 // Player truck — top-down view, 14×22 pixels, scale=3 → 42×66
-const PLAYER_PIX = [
-  '......GG......',
-  '......GG......',
-  '......GG......',
-  '.....GGGG.....',
-  '.KKKKKgKKKKK.',
-  'KOOBBBOwwOOOK',
-  'KOOYYYOwwOOOK',
-  'KoooooooooooK',
-  'KOOOOOOOOooOK',
-  'WWOOOOOOOOOOWW',  // front wheels – intentionally 15 chars but let's fix
-  'WWOOOOOOOOOOWW',
-  'KOOOOOOOOooOK',
-  'KOOLOOOOOLooK',
-  'KOOOOOOOOooOK',
-  'WWOOOOOOOOOOWW',
-  'WWOOOOOOOOOOWW',
-  'KOOOOOOOOooOK',
-  'KoOoOooOoOooK',
-  '.KOOOOOOOOoK.',
-  '..KYYYYYYkK..',
-  '..............',
-  '..............',
-];
-
-// Fix: ensure all rows same width. Width = 14.
 const PLAYER_ROWS = [
   '......GG......',
   '......GG......',
@@ -146,46 +122,46 @@ const ALLY_ROWS = [
   '..............',
 ];
 
-// Walker enemy — 10×16, scale=3 → 30×48
-const WALKER_ROWS = [
-  '.KRRRRRRK.',
-  'KRRrRRrRRK',
-  'KRRERRERKK',
-  'KRRrRRrRRK',
-  '.KRRRRRRK.',
-  'KRRRRRRRrK',
-  'KrRRRRRRrK',
-  'KRRRRRRRrK',
-  '.KRRRRRRK.',
-  'KRrR..RrRK',
-  'KRrR..RrRK',
-  '.KR....RK.',
-  '.KR....RK.',
-  '.Kr....rK.',
-  '.KrR..RrK.',
-  '.KRRKKRRK.',
+// Orc enemy (Walker) — basic green soldier with Z marking, 10×16, scale=3 → 30×48
+const ORC_ROWS = [
+  '.KMMMMMMK.',
+  'KMMIMMIMmK',
+  'KMMEMMMEmK',
+  'KMMIMMMImK',
+  '.KMMMMmmK.',
+  'KMZMMMMMmK',
+  'KIMMMMMImK',
+  'KMMMMMMMmK',
+  '.KMMZMMmK.',
+  'KMmM..MmMK',
+  'KMmM..MmMK',
+  '.KM....MK.',
+  '.KM....MK.',
+  '.Km....mK.',
+  '.KmMKKMmK.',
+  '.KMMKKMMK.',
 ];
 
-// Heavy enemy — 14×18, scale=3 → 42×54
-const HEAVY_ROWS = [
-  '..KRRRRRRRK...',
-  '.KRRrRRrRRRK..',
-  'KRRRERRRERRrK.',
-  'KRRRrRRRrRRrK.',
-  '.KRRRRRRRRrK..',
-  'KrRRRRRRRRrRrK',
-  'KRRrrRRRRRrRRK',
-  'KRRRRRRRRRrRRK',
-  'KrRRRRRRRRrRrK',
-  '.KRRRRRRRRRRK.',
-  'KRrRR....RRrRK',
-  'KRrRR....RRrRK',
-  '.KRR......RRK.',
-  '.KRR......RRK.',
-  '.KRrR....RrRK.',
-  '.KRrR....RrRK.',
-  '.KRrrRKKRrrK..',
-  '..KRRRrrRRRK..',
+// Broneorc enemy (Heavy) — heavy armored orc, 14×18, scale=3 → 42×54
+const BRONEORC_ROWS = [
+  '..KMMMMMMMMK..',
+  '.KMIMMMIMMMmK.',
+  'KMMMEMMMEMMMmK',
+  'KMMMIMMMIMmmMK',
+  '.KMMMMMMMMImK.',
+  'KIMMMMMMMMMImIK',
+  'KMMIZMMMZMmMMK',
+  'KMMMMMMMMMmMMK',
+  'KIMMMMMMMMMImIK',
+  '.KMMMMMMMMMMK.',
+  'KMIMm....mMIMK',
+  'KMIMm....mMIMK',
+  '.KMM......MMK.',
+  '.KMM......MMK.',
+  '.KMmM....MmmK.',
+  '.KMmM....MmmK.',
+  '.KMMmMKKMmMmK.',
+  '..KMMMmmMMMmK.',
 ];
 
 // Bullet — player, 2×5, scale=3 → 6×15
@@ -264,38 +240,38 @@ const OBSTACLE_BARR_ROWS = [
   '.WWWWWWWWWWWW.',
 ];
 
-// Runner enemy — fast, thin, 8×14, scale=3 → 24×42
-const RUNNER_ROWS = [
-  '.KPPPPK.',
-  'KPpPPpPK',
-  'KPEPPEpK',
-  'KPpPPpPK',
-  '.KPPPPK.',
-  'KPPPPpPK',
-  '.KPPPpK.',
-  '.KpPPpK.',
-  '..KPpK..',
-  '..KPpK..',
-  '.KP..pK.',
-  '.KP..pK.',
-  'KPP..pPK',
-  'KPP..pPK',
+// Z-Orc enemy (Runner) — fast slim orc with Z chevrons, 8×14, scale=3 → 24×42
+const ZORC_ROWS = [
+  '.KMMMMK.',
+  'KMIMMImK',
+  'KMMEMEmK',
+  'KMIMmImK',
+  '.KMMMMK.',
+  'KMZMMmMK',
+  '.KMMMmK.',
+  '.KIMmIK.',
+  '..KMmK..',
+  '..KMmK..',
+  '.KM..mK.',
+  '.KM..mK.',
+  'KMM..mMK',
+  'KMM..mMK',
 ];
 
-// Bomber enemy — round, explosive, 12×12, scale=3 → 36×36
-const BOMBER_ROWS = [
-  '...KNNNNK...',
-  '..KNNnNNnNK.',
-  '.KNNnNNNNnNK',
-  'KNNNZNNNZNnK',
-  'KNnNNNNNNNnK',
-  'KNNNNNNNNNnK',
-  'KNnNNNNNNNnK',
-  'KNNNZNNNZNnK',
-  '.KNNnNNNNnNK',
-  '..KNNnNNnNK.',
-  '...KNNNNnK..',
-  '....KNNK....',
+// Chmobit enemy (Bomber) — fat round orc soldier, 12×12, scale=3 → 36×36
+const CHMOBIT_ROWS = [
+  '...KMMMMK...',
+  '..KMMmMMmMK.',
+  '.KMMmMMMmMMK',
+  'KMMMZMMMZMmK',
+  'KMmMMMMMMMMK',
+  'KMMMMMMMMMmK',
+  'KMmMMMMMMMMK',
+  'KMMMZMMMZMmK',
+  '.KMMmMMMmMMK',
+  '..KMMmMMmMK.',
+  '...KMMMMmK..',
+  '....KMMK....',
 ];
 
 // Repair bonus — green cross, 12×12, scale=3 → 36×36
@@ -315,7 +291,6 @@ const BONUS_REPAIR_ROWS = [
 ];
 
 // Scout vehicle — narrow, fast, 10×20, scale=3 → 30×60
-// Sleek blue-grey recon vehicle, smaller silhouette
 const SCOUT_ROWS = [
   '....SS....',
   '....SS....',
@@ -365,6 +340,17 @@ const APC_ROWS = [
   '...............',
 ];
 
+// Mine hazard — 7×7, scale=3 → 21×21
+const MINE_ROWS = [
+  '.KDDDDK.',
+  'KDdddDDK',
+  'KDdZdDDK',
+  'KDdddDDK',
+  'KDdZdDDK',
+  'KDdddDDK',
+  '.KDDDDK.',
+];
+
 // ─── Exported creator ──────────────────────────────────────────────────────
 export function createPixelTextures(scene: Phaser.Scene) {
   const S = 3; // pixel scale
@@ -377,19 +363,20 @@ export function createPixelTextures(scene: Phaser.Scene) {
 
   drawPixelArt(scene, 'player', norm(PLAYER_ROWS), S);
   drawPixelArt(scene, 'ally', norm(ALLY_ROWS), S);
-  drawPixelArt(scene, 'walker', norm(WALKER_ROWS), S);
-  drawPixelArt(scene, 'heavy', norm(HEAVY_ROWS), S);
+  drawPixelArt(scene, 'walker', norm(ORC_ROWS), S);
+  drawPixelArt(scene, 'heavy', norm(BRONEORC_ROWS), S);
   drawPixelArt(scene, 'bullet_p', norm(BULLET_P_ROWS), S);
   drawPixelArt(scene, 'bullet_a', norm(BULLET_A_ROWS), S);
   drawPixelArt(scene, 'bonus_ally', norm(BONUS_ROWS), S);
   drawPixelArt(scene, 'obs_block', norm(OBSTACLE_BLOCK_ROWS), S);
   drawPixelArt(scene, 'obs_crate', norm(OBSTACLE_CRATE_ROWS), S);
   drawPixelArt(scene, 'obs_barr', norm(OBSTACLE_BARR_ROWS), S);
-  drawPixelArt(scene, 'runner', norm(RUNNER_ROWS), S);
-  drawPixelArt(scene, 'bomber', norm(BOMBER_ROWS), S);
+  drawPixelArt(scene, 'runner', norm(ZORC_ROWS), S);
+  drawPixelArt(scene, 'bomber', norm(CHMOBIT_ROWS), S);
   drawPixelArt(scene, 'bonus_repair', norm(BONUS_REPAIR_ROWS), S);
   drawPixelArt(scene, 'vehicle_scout', norm(SCOUT_ROWS), S);
   drawPixelArt(scene, 'vehicle_apc', norm(APC_ROWS), S);
+  drawPixelArt(scene, 'obs_mine', norm(MINE_ROWS), S);
 
   // Tiny explosion particle
   const gfx = scene.make.graphics({ x: 0, y: 0 });

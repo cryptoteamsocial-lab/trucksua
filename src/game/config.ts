@@ -21,7 +21,7 @@ export const CONFIG = {
   ALLY_BONUS_INTERVAL_MIN: 8000,
   ALLY_BONUS_INTERVAL_MAX: 15000,
   LEVEL_DURATION: 90000,
-  MAX_ALLIES: 8,
+  MAX_ALLIES: 3,
   COLLISION_DAMAGE: 10,
 
   COINS_WALKER: 10,
@@ -133,13 +133,16 @@ export interface VehicleDef {
   id: VehicleId;
   label: string;
   description: string;
-  price: number;
+  starsPrice: number;    // 0 = free/default. >0 = Telegram Stars required
+  coinPrice: number;     // always 0 for Stars-only vehicles
   textureKey: string;
   baseHp: number;
   baseSpeed: number;
   baseFireRate: number;
   spreadShots: number;
   color: number;
+  collectionGoal: number; // Stars needed for real vehicle collection
+  collectionRaised: number; // mock: Stars raised so far
 }
 
 export const VEHICLES: VehicleDef[] = [
@@ -147,37 +150,46 @@ export const VEHICLES: VehicleDef[] = [
     id: 'humvee',
     label: 'Хамві',
     description: 'Збалансований. Хороший\nзагальновійськовий пікап.',
-    price: 0,
+    starsPrice: 0,
+    coinPrice: 0,
     textureKey: 'player',
     baseHp: 100,
     baseSpeed: 240,
     baseFireRate: 350,
     spreadShots: 1,
     color: 0x4a7c59,
+    collectionGoal: 50000,
+    collectionRaised: 39250,
   },
   {
     id: 'scout',
-    label: 'Скаут',
+    label: 'Козак',
     description: 'Швидкий та маневрений.\nШвидка черга. Мало HP.',
-    price: 350,
+    starsPrice: 500,
+    coinPrice: 0,
     textureKey: 'vehicle_scout',
     baseHp: 70,
     baseSpeed: 330,
     baseFireRate: 240,
     spreadShots: 1,
     color: 0x6ba3c4,
+    collectionGoal: 50000,
+    collectionRaised: 12500,
   },
   {
     id: 'apc',
-    label: 'БТР',
+    label: 'Пікап',
     description: 'Важка броня. Потрійний\nрозсіяний постріл. Повільний.',
-    price: 800,
+    starsPrice: 1000,
+    coinPrice: 0,
     textureKey: 'vehicle_apc',
     baseHp: 180,
     baseSpeed: 170,
     baseFireRate: 500,
     spreadShots: 3,
     color: 0x8b7340,
+    collectionGoal: 80000,
+    collectionRaised: 23000,
   },
 ];
 

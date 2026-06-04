@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { CONFIG, UPGRADES, VEHICLES, WEAPON_LEVELS, UPGRADE_MAX_LEVELS, getStatFromUpgrade } from './config';
-import { loadData, upgradeLevel, getUpgradeCost, buyVehicle, selectVehicle } from './storage';
+import { loadData, upgradeLevel, getUpgradeCost, unlockVehicle, selectVehicle } from './storage';
 import { createPixelTextures } from './PixelArt';
 import type { UpgradeId, VehicleId } from './types';
 
@@ -181,7 +181,7 @@ export default class GarageScene extends Phaser.Scene {
   private buildVehiclesTab() {
     const data = loadData();
     VEHICLES.forEach((veh, i) => {
-      const y = GRID_Y + i * 190;
+      const y = GRID_Y + i * 210;
       this.contentObjects.push(...this.buildVehicleCard(veh, y, data.ownedVehicles, data.selectedVehicle));
     });
     this.refreshCoins();
@@ -195,11 +195,10 @@ export default class GarageScene extends Phaser.Scene {
   ): Phaser.GameObjects.GameObject[] {
     const isOwned    = owned.includes(veh.id);
     const isSelected = selected === veh.id;
-    const canAfford  = !isOwned && loadData().totalCoins >= veh.price;
     const objects: Phaser.GameObjects.GameObject[] = [];
 
     const cx = CONFIG.WIDTH / 2;
-    const cardBg = this.add.rectangle(cx, y + 82, CONFIG.WIDTH - 30, 172, 0x0d1520)
+    const cardBg = this.add.rectangle(cx, y + 92, CONFIG.WIDTH - 30, 192, 0x0d1520)
       .setStrokeStyle(2, isSelected ? 0xffd700 : isOwned ? 0x335533 : 0x222222);
     objects.push(cardBg);
 
@@ -224,7 +223,14 @@ export default class GarageScene extends Phaser.Scene {
       fontSize: '12px', color: '#aaddff', fontFamily: 'monospace',
     }).setOrigin(0, 0.5));
 
-    const btnY = y + 148;
+    // Collection progress
+    const pct = veh.collectionRaised / veh.collectionGoal;
+    const barW = 140;
+    objects.push(this.add.rectangle(cx + 60, y + 137, barW, 8, 0x0a1220));
+    if (pct > 0) objects.push(this.add.rectangle(cx + 60 - barW / 2 + (barW * pct) / 2, y + 137, barW * pct, 8, 0x005bbb).setOrigin(0.5));
+    objects.push(this.add.text(cx + 60, y + 137, `${Math.round(pct * 100)}% ⭐`, { fontSize: '10px', color: '#446688', fontFamily: 'monospace' }).setOrigin(0.5));
+
+    const btnY = y + 158;
     if (isSelected) {
       const selBg = this.add.rectangle(cx + 80, btnY, 120, 36, 0x1a3300).setStrokeStyle(2, 0xffd700);
       objects.push(selBg);
@@ -237,22 +243,30 @@ export default class GarageScene extends Phaser.Scene {
       selBg.on('pointerover', () => selBg.setFillStyle(0x1e4d1e));
       selBg.on('pointerout',  () => selBg.setFillStyle(0x113311));
     } else {
-      const btnColor = canAfford ? 0x0a1a2e : 0x111111;
-      const btnBorder = canAfford ? 0x3377cc : 0x333333;
-      const buyBg = this.add.rectangle(cx + 80, btnY, 130, 36, btnColor).setStrokeStyle(2, btnBorder);
+      // Stars-only unlock
+      const buyBg = this.add.rectangle(cx + 80, btnY, 140, 36, 0x1a1200).setStrokeStyle(2, 0x886600).setInteractive({ useHandCursor: true });
       objects.push(buyBg);
-      objects.push(this.add.text(cx + 80, btnY, `$ ${veh.price}`, {
-        fontSize: '15px', color: canAfford ? '#88ccff' : '#444', fontFamily: 'monospace',
+      objects.push(this.add.text(cx + 80, btnY, `${veh.starsPrice} ⭐`, {
+        fontSize: '14px', color: '#ffd700', fontFamily: 'monospace',
       }).setOrigin(0.5));
-      if (canAfford) {
-        buyBg.setInteractive({ useHandCursor: true });
-        buyBg.on('pointerdown', () => { buyVehicle(veh.id, veh.price); this.renderTab(); });
-        buyBg.on('pointerover', () => buyBg.setFillStyle(0x143050));
-        buyBg.on('pointerout',  () => buyBg.setFillStyle(btnColor));
-      }
+      buyBg.on('pointerdown', () => this.onBuyStars(veh.id, veh.starsPrice));
+      buyBg.on('pointerover', () => buyBg.setFillStyle(0x2a1e00));
+      buyBg.on('pointerout',  () => buyBg.setFillStyle(0x1a1200));
     }
 
     return objects;
+  }
+
+  private onBuyStars(id: VehicleId, starsPrice: number) {
+    const tg = window.Telegram?.WebApp as any;
+    if (tg && tg.openInvoice) {
+      // Telegram Stars invoice — requires backend to generate invoice link
+      alert(`Купівля за ${starsPrice} ⭐ Stars буде доступна після підключення оплати.`);
+    } else {
+      // Dev mode: unlock directly for testing
+      unlockVehicle(id);
+      this.renderTab();
+    }
   }
 
   private refreshCoins() {
