@@ -27,7 +27,13 @@ const P: Record<string, number | null> = {
   'f': 0x0055aa,      // bonus dark
   'H': 0xffffff,      // highlight
   'X': 0xffaa00,      // explosion/detail orange
-  'P': 0xff6600,      // pipe/exhaust
+  'P': 0xaa00ff,      // runner purple
+  'p': 0x660099,      // runner dark purple
+  'N': 0xdd6600,      // bomber orange
+  'n': 0x994400,      // bomber dark orange
+  'Z': 0xffdd00,      // bomber warning yellow
+  'V': 0x22aa44,      // repair green
+  'v': 0x116622,      // repair dark green
 };
 
 function drawPixelArt(
@@ -251,6 +257,56 @@ const OBSTACLE_BARR_ROWS = [
   '.WWWWWWWWWWWW.',
 ];
 
+// Runner enemy — fast, thin, 8×14, scale=3 → 24×42
+const RUNNER_ROWS = [
+  '.KPPPPK.',
+  'KPpPPpPK',
+  'KPEPPEpK',
+  'KPpPPpPK',
+  '.KPPPPK.',
+  'KPPPPpPK',
+  '.KPPPpK.',
+  '.KpPPpK.',
+  '..KPpK..',
+  '..KPpK..',
+  '.KP..pK.',
+  '.KP..pK.',
+  'KPP..pPK',
+  'KPP..pPK',
+];
+
+// Bomber enemy — round, explosive, 12×12, scale=3 → 36×36
+const BOMBER_ROWS = [
+  '...KNNNNK...',
+  '..KNNnNNnNK.',
+  '.KNNnNNNNnNK',
+  'KNNNZNNNZNnK',
+  'KNnNNNNNNNnK',
+  'KNNNNNNNNNnK',
+  'KNnNNNNNNNnK',
+  'KNNNZNNNZNnK',
+  '.KNNnNNNNnNK',
+  '..KNNnNNnNK.',
+  '...KNNNNnK..',
+  '....KNNK....',
+];
+
+// Repair bonus — green cross, 12×12, scale=3 → 36×36
+const BONUS_REPAIR_ROWS = [
+  '..KVVVVVVK..',
+  '.KVVVvVVVVK.',
+  'KVVVHHHVVvK.',
+  'KVVVHHHVVvK.',
+  'KVHHHHHHHvK.',
+  'KVHHHHHHHvK.',
+  'KVHHHHHHHvK.',
+  'KVVVHHHVVvK.',
+  'KVVVHHHVVvK.',
+  '.KVVVvVVVVK.',
+  '..KVVVVVvK..',
+  '...KVVVVK...',
+];
+
 // ─── Exported creator ──────────────────────────────────────────────────────
 export function createPixelTextures(scene: Phaser.Scene) {
   const S = 3; // pixel scale
@@ -271,6 +327,9 @@ export function createPixelTextures(scene: Phaser.Scene) {
   drawPixelArt(scene, 'obs_block', norm(OBSTACLE_BLOCK_ROWS), S);
   drawPixelArt(scene, 'obs_crate', norm(OBSTACLE_CRATE_ROWS), S);
   drawPixelArt(scene, 'obs_barr', norm(OBSTACLE_BARR_ROWS), S);
+  drawPixelArt(scene, 'runner', norm(RUNNER_ROWS), S);
+  drawPixelArt(scene, 'bomber', norm(BOMBER_ROWS), S);
+  drawPixelArt(scene, 'bonus_repair', norm(BONUS_REPAIR_ROWS), S);
 
   // Tiny explosion particle
   const gfx = scene.make.graphics({ x: 0, y: 0 });

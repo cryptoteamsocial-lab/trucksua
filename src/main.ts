@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import GameScene from './game/GameScene';
+import GarageScene from './game/GarageScene';
 import { CONFIG } from './game/config';
 import './style.css';
 
@@ -16,7 +17,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: CONFIG.HEIGHT,
   backgroundColor: CONFIG.COLORS.BG,
   parent: 'app',
-  scene: [GameScene],
+  scene: [GameScene, GarageScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

@@ -1,9 +1,11 @@
+import type { UpgradeId } from './types';
+
 export const CONFIG = {
   WIDTH: 390,
   HEIGHT: 844,
 
   ROAD_WIDTH: 260,
-  ROAD_X: 65, // (390 - 260) / 2
+  ROAD_X: 65,
 
   PLAYER_SPEED_X: 240,
   PLAYER_HP: 100,
@@ -20,7 +22,7 @@ export const CONFIG = {
   ALLY_BONUS_INTERVAL_MIN: 8000,
   ALLY_BONUS_INTERVAL_MAX: 15000,
 
-  LEVEL_DURATION: 90000, // 90 sec
+  LEVEL_DURATION: 90000,
 
   MAX_ALLIES: 8,
 
@@ -28,6 +30,8 @@ export const CONFIG = {
 
   COINS_WALKER: 10,
   COINS_HEAVY: 30,
+  COINS_RUNNER: 15,
+  COINS_BOMBER: 25,
   COINS_VICTORY_BASE: 100,
   COINS_PER_ALLY: 10,
 
@@ -56,3 +60,50 @@ export const CONFIG = {
     EXPLOSION: 0xff6600,
   },
 };
+
+// ─── Upgrade definitions ──────────────────────────────────────────────────────
+export interface UpgradeDef {
+  id: UpgradeId;
+  label: string;
+  icon: string;
+  description: string;
+  // value per level (index = level 1..5 bonus over base)
+  bonuses: number[];
+}
+
+export const UPGRADES: UpgradeDef[] = [
+  {
+    id: 'engine',
+    label: 'Engine',
+    icon: '[E]',
+    description: 'Move speed +20 per level',
+    bonuses: [20, 40, 60, 90, 130],
+  },
+  {
+    id: 'armor',
+    label: 'Armor',
+    icon: '[A]',
+    description: 'Max HP +20 per level',
+    bonuses: [20, 40, 60, 80, 100],
+  },
+  {
+    id: 'weapon',
+    label: 'Weapon',
+    icon: '[W]',
+    description: 'Fire rate faster',
+    bonuses: [30, 60, 90, 120, 160],
+  },
+  {
+    id: 'damage',
+    label: 'Damage',
+    icon: '[D]',
+    description: '+1 damage per level',
+    bonuses: [1, 2, 3, 4, 5],
+  },
+];
+
+export function getStatFromUpgrade(id: UpgradeId, level: number): number {
+  if (level === 0) return 0;
+  const def = UPGRADES.find(u => u.id === id)!;
+  return def.bonuses[level - 1];
+}
