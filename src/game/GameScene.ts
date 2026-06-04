@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CONFIG, VEHICLES, getStatFromUpgrade } from './config';
+import { CONFIG, VEHICLES, CHARITY, getStatFromUpgrade } from './config';
 import { loadData, addCoins, recordRun, claimDailyReward, updateMissionProgress } from './storage';
 import { createPixelTextures } from './PixelArt';
 import type { GameState, EnemyType } from './types';
@@ -175,82 +175,143 @@ export default class GameScene extends Phaser.Scene {
     this.clearOverlay();
 
     const data = loadData();
-
-    // Check daily reward
     const dailyReward = claimDailyReward();
 
-    const bg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x050510, 0.84).setDepth(20);
+    const bg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x050510, 0.90).setDepth(20);
 
-    const title = this.add.text(CONFIG.WIDTH / 2, 110, 'STEEL ROAD', {
-      fontSize: '44px', color: '#FFD700', fontFamily: 'monospace', stroke: '#0a0a0a', strokeThickness: 7,
+    // ── Title ─────────────────────────────────────────────────────────────────
+    const title = this.add.text(CONFIG.WIDTH / 2, 46, 'БАВОВНА ROAD', {
+      fontSize: '36px', color: '#FFD700', fontFamily: 'monospace', stroke: '#0a0a0a', strokeThickness: 7,
     }).setOrigin(0.5).setDepth(21);
 
-    const sub = this.add.text(CONFIG.WIDTH / 2, 162, 'C O N V O Y', {
-      fontSize: '22px', color: '#88ccff', fontFamily: 'monospace', stroke: '#0a0a0a', strokeThickness: 4,
+    const sub = this.add.text(CONFIG.WIDTH / 2, 84, 'Грай. Допомагай. Перемагай.', {
+      fontSize: '13px', color: '#88ccff', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(21);
 
-    const flagB = this.add.rectangle(CONFIG.WIDTH / 2, 200, 280, 12, 0x005bbb).setDepth(21);
-    const flagY = this.add.rectangle(CONFIG.WIDTH / 2, 212, 280, 12, 0xffd700).setDepth(21);
+    const flagB = this.add.rectangle(CONFIG.WIDTH / 2, 104, CONFIG.WIDTH - 40, 6, 0x005bbb).setDepth(21);
+    const flagY = this.add.rectangle(CONFIG.WIDTH / 2, 110, CONFIG.WIDTH - 40, 6, 0xffd700).setDepth(21);
 
+    // ── Charity block ─────────────────────────────────────────────────────────
+    const charityBg = this.add.rectangle(CONFIG.WIDTH / 2, 230, CONFIG.WIDTH - 24, 230, 0x0a1520, 0.96)
+      .setStrokeStyle(2, 0x1a3a5a).setDepth(21);
+
+    this.add.text(CONFIG.WIDTH / 2, 130, 'АКТИВНИЙ ЗБІР', {
+      fontSize: '13px', color: '#556677', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(22);
+
+    this.add.text(CONFIG.WIDTH / 2, 154, CHARITY.title, {
+      fontSize: '17px', color: '#ffffff', fontFamily: 'monospace', align: 'center',
+    }).setOrigin(0.5).setDepth(22);
+
+    this.add.text(CONFIG.WIDTH / 2, 176, CHARITY.unit, {
+      fontSize: '11px', color: '#445566', fontFamily: 'monospace', align: 'center',
+    }).setOrigin(0.5).setDepth(22);
+
+    // Progress
+    const pct = CHARITY.raised / CHARITY.goal;
+    const barW = CONFIG.WIDTH - 70;
+    const barX = 35;
+    this.add.rectangle(CONFIG.WIDTH / 2, 202, barW, 14, 0x111a28).setDepth(22);
+    this.add.rectangle(barX + (barW * pct) / 2, 202, barW * pct, 14, 0x005bbb).setDepth(22).setOrigin(0.5);
+    this.add.text(CONFIG.WIDTH / 2, 202,
+      `${Math.round(pct * 100)}%  —  ${CHARITY.raised.toLocaleString()} / ${CHARITY.goal.toLocaleString()} ⭐`,
+      { fontSize: '12px', color: '#88ccff', fontFamily: 'monospace' }
+    ).setOrigin(0.5).setDepth(23);
+
+    // Vehicle image placeholder
     const vehKey = data.selectedVehicle ? VEHICLES.find(v => v.id === data.selectedVehicle)?.textureKey ?? 'player' : 'player';
-    const demo = this.add.image(CONFIG.WIDTH / 2, 300, vehKey).setScale(1.5).setDepth(21);
-    this.tweens.add({ targets: demo, y: 308, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    const demo = this.add.image(120, 255, vehKey).setScale(1.8).setDepth(22);
+    this.tweens.add({ targets: demo, y: 263, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
 
-    // Stats
-    const statsBg = this.add.rectangle(CONFIG.WIDTH / 2, 390, 300, 66, 0x0a140a, 0.9).setDepth(21).setStrokeStyle(1, 0x224422);
-    const statsT = this.add.text(CONFIG.WIDTH / 2, 390,
-      `$ ${data.totalCoins}  |  Best: ${data.bestScore}  |  Fleet: ${data.maxConvoy + 1}`,
-      { fontSize: '14px', color: '#aaffaa', fontFamily: 'monospace', align: 'center' }
-    ).setOrigin(0.5).setDepth(22);
+    this.add.text(240, 242, CHARITY.vehicle, {
+      fontSize: '14px', color: '#aaccdd', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(22);
 
-    // Play
-    const playBg = this.add.rectangle(CONFIG.WIDTH / 2, 470, 220, 60, 0x005bbb).setDepth(21)
+    this.add.text(240, 266, CHARITY.description, {
+      fontSize: '11px', color: '#445566', fontFamily: 'monospace', align: 'center',
+    }).setOrigin(0.5).setDepth(22);
+
+    // ── Action buttons ─────────────────────────────────────────────────────────
+    const donateBg = this.add.rectangle(CONFIG.WIDTH / 2, 332, CONFIG.WIDTH - 60, 48, 0x0a1a2e).setDepth(21)
+      .setStrokeStyle(2, 0x3377cc).setInteractive({ useHandCursor: true });
+    this.add.text(CONFIG.WIDTH / 2, 332, '💙 ДОПОМОГТИ ЗБОРУ', {
+      fontSize: '15px', color: '#88ccff', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(22);
+    donateBg.on('pointerdown', () => { const u = 'https://t.me/bavovnaroad'; window.open(u, '_blank'); });
+    donateBg.on('pointerover', () => donateBg.setFillStyle(0x143050));
+    donateBg.on('pointerout',  () => donateBg.setFillStyle(0x0a1a2e));
+
+    const playBg = this.add.rectangle(CONFIG.WIDTH / 2, 396, CONFIG.WIDTH - 60, 62, 0x005bbb).setDepth(21)
       .setStrokeStyle(3, 0xffd700).setInteractive({ useHandCursor: true });
-    const playT = this.add.text(CONFIG.WIDTH / 2, 470, '▶  PLAY', {
-      fontSize: '26px', color: '#FFD700', fontFamily: 'monospace',
+    const playT = this.add.text(CONFIG.WIDTH / 2, 396, '▶  ГРАТИ', {
+      fontSize: '28px', color: '#FFD700', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(22);
     playBg.on('pointerdown', () => this.startGame());
     playBg.on('pointerover', () => playBg.setFillStyle(0x1177dd));
-    playBg.on('pointerout', () => playBg.setFillStyle(0x005bbb));
-    this.tweens.add({ targets: [playBg, playT], scaleX: 1.04, scaleY: 1.04, duration: 700, yoyo: true, repeat: -1 });
+    playBg.on('pointerout',  () => playBg.setFillStyle(0x005bbb));
+    this.tweens.add({ targets: [playBg, playT], scaleX: 1.03, scaleY: 1.03, duration: 700, yoyo: true, repeat: -1 });
 
-    // Garage (now active!)
-    const garageBg = this.add.rectangle(CONFIG.WIDTH / 2, 548, 190, 48, 0x0d2200).setDepth(21)
-      .setStrokeStyle(2, 0x44aa00).setInteractive({ useHandCursor: true });
-    const garageT = this.add.text(CONFIG.WIDTH / 2, 548, '[G] Garage', {
-      fontSize: '17px', color: '#88ff44', fontFamily: 'monospace',
+    // ── Coins stat ─────────────────────────────────────────────────────────────
+    const statsBg = this.add.rectangle(CONFIG.WIDTH / 2, 462, CONFIG.WIDTH - 40, 44, 0x0a140a, 0.9).setDepth(21).setStrokeStyle(1, 0x1a3a1a);
+    const statsT = this.add.text(CONFIG.WIDTH / 2, 462,
+      `$ ${data.totalCoins}  |  Рекорд: ${data.bestScore}  |  Конвой: ${data.maxConvoy + 1}`,
+      { fontSize: '13px', color: '#aaffaa', fontFamily: 'monospace', align: 'center' }
+    ).setOrigin(0.5).setDepth(22);
+
+    // ── Navigation buttons ─────────────────────────────────────────────────────
+    const btnY = 516;
+    const btnW = 106;
+    const btnGap = 8;
+    const btnStartX = CONFIG.WIDTH / 2 - btnW - btnGap;
+
+    const navDefs = [
+      { label: 'ГАРАЖ',   color: 0x0d2200, border: 0x44aa00, textCol: '#88ff44', x: btnStartX, cb: () => { this.clearMenu(); this.scene.start('GarageScene'); } },
+      { label: 'МІСІЇ',   color: 0x1a0a22, border: 0x773399, textCol: '#cc88ff', x: CONFIG.WIDTH / 2, cb: () => { this.clearMenu(); this.scene.start('MissionsScene'); } },
+      { label: 'СЛАВА',   color: 0x0a0a22, border: 0x3333aa, textCol: '#6666ff', x: btnStartX + (btnW + btnGap) * 2, cb: () => { this.clearMenu(); this.scene.start('HallOfFameScene'); } },
+    ];
+
+    const navObjs: Phaser.GameObjects.GameObject[] = [];
+    navDefs.forEach(n => {
+      const b = this.add.rectangle(n.x, btnY, btnW, 46, n.color).setDepth(21)
+        .setStrokeStyle(2, n.border).setInteractive({ useHandCursor: true });
+      const t = this.add.text(n.x, btnY, n.label, { fontSize: '13px', color: n.textCol, fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
+      b.on('pointerdown', n.cb);
+      b.on('pointerover', () => b.setAlpha(0.8));
+      b.on('pointerout',  () => b.setAlpha(1));
+      navObjs.push(b, t);
+    });
+
+    // Merch button
+    const merchBg = this.add.rectangle(CONFIG.WIDTH / 2, 576, 180, 42, 0x1a1000).setDepth(21)
+      .setStrokeStyle(2, 0x775500).setInteractive({ useHandCursor: true });
+    const merchT = this.add.text(CONFIG.WIDTH / 2, 576, '🛍 МЕРЧ', { fontSize: '15px', color: '#ccaa44', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
+    merchBg.on('pointerdown', () => { this.clearMenu(); this.scene.start('MerchScene'); });
+    merchBg.on('pointerover', () => merchBg.setFillStyle(0x2a1e00));
+    merchBg.on('pointerout',  () => merchBg.setFillStyle(0x1a1000));
+
+    // Last donated cars
+    this.add.rectangle(CONFIG.WIDTH / 2, 624, CONFIG.WIDTH - 24, 1, 0x1a2a3a).setDepth(21);
+    this.add.text(CONFIG.WIDTH / 2, 638, 'ОСТАННІ ПЕРЕДАНІ АВТО', { fontSize: '11px', color: '#334455', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
+
+    const histObjs: Phaser.GameObjects.GameObject[] = [];
+    CHARITY.history.forEach((h, i) => {
+      const hy = 662 + i * 44;
+      const hbg = this.add.rectangle(CONFIG.WIDTH / 2, hy, CONFIG.WIDTH - 30, 38, 0x080e18).setDepth(21).setStrokeStyle(1, 0x1a2a3a);
+      const ht = this.add.text(30, hy, `🚙 ${h.name}`, { fontSize: '12px', color: '#aaccdd', fontFamily: 'monospace' }).setOrigin(0, 0.5).setDepth(22);
+      const hd = this.add.text(CONFIG.WIDTH - 18, hy, `${h.date}  ${h.unit}`, { fontSize: '11px', color: '#334455', fontFamily: 'monospace' }).setOrigin(1, 0.5).setDepth(22);
+      histObjs.push(hbg, ht, hd);
+    });
+
+    const ver = this.add.text(CONFIG.WIDTH / 2, 810, 'Бавовна Road  v2.0', {
+      fontSize: '11px', color: '#1a2233', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(22);
-    garageBg.on('pointerdown', () => { this.clearMenu(); this.scene.start('GarageScene'); });
-    garageBg.on('pointerover', () => garageBg.setFillStyle(0x1a3800));
-    garageBg.on('pointerout', () => garageBg.setFillStyle(0x0d2200));
 
-    // Two bottom buttons side by side
-    const lbBg = this.add.rectangle(CONFIG.WIDTH / 2 - 54, 610, 180, 46, 0x0a0a22).setDepth(21)
-      .setStrokeStyle(2, 0x3333aa).setInteractive({ useHandCursor: true });
-    const lbT = this.add.text(CONFIG.WIDTH / 2 - 54, 610, '[L] Leaders', {
-      fontSize: '15px', color: '#6666ff', fontFamily: 'monospace',
-    }).setOrigin(0.5).setDepth(22);
-    lbBg.on('pointerdown', () => this.showLeaderboard());
-    lbBg.on('pointerover', () => lbBg.setFillStyle(0x141433));
-    lbBg.on('pointerout', () => lbBg.setFillStyle(0x0a0a22));
+    this.menuObjects = [
+      bg, title, sub, flagB, flagY, charityBg, donateBg, playBg, playT,
+      statsBg, statsT, demo, merchBg, merchT,
+      ...navObjs, ...histObjs, ver,
+    ];
 
-    const missBg = this.add.rectangle(CONFIG.WIDTH / 2 + 54, 610, 180, 46, 0x1a0a22).setDepth(21)
-      .setStrokeStyle(2, 0x773399).setInteractive({ useHandCursor: true });
-    const missT = this.add.text(CONFIG.WIDTH / 2 + 54, 610, '[M] Missions', {
-      fontSize: '15px', color: '#cc88ff', fontFamily: 'monospace',
-    }).setOrigin(0.5).setDepth(22);
-    missBg.on('pointerdown', () => { this.clearMenu(); this.scene.start('MissionsScene'); });
-    missBg.on('pointerover', () => missBg.setFillStyle(0x2a1033));
-    missBg.on('pointerout', () => missBg.setFillStyle(0x1a0a22));
-
-    const ver = this.add.text(CONFIG.WIDTH / 2, 792, 'Steel Road: Convoy  v1.2', {
-      fontSize: '11px', color: '#222233', fontFamily: 'monospace',
-    }).setOrigin(0.5).setDepth(22);
-
-    this.menuObjects = [bg, title, sub, flagB, flagY, demo, statsBg, statsT,
-      playBg, playT, garageBg, garageT, lbBg, lbT, missBg, missT, ver];
-
-    // Daily reward popup
     if (dailyReward !== null) {
       this.time.delayedCall(400, () => this.showDailyReward(dailyReward));
     }
@@ -261,19 +322,19 @@ export default class GameScene extends Phaser.Scene {
     const bg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x000000, 0.6).setDepth(D);
     const box = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2, 300, 240, 0x0a1a0a).setDepth(D)
       .setStrokeStyle(3, 0xffd700);
-    const title = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 70, '🌟 DAILY REWARD', {
-      fontSize: '20px', color: '#ffd700', fontFamily: 'monospace',
+    const title = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 70, '🌟 ЩОДЕННА НАГОРОДА', {
+      fontSize: '18px', color: '#ffd700', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(D + 1);
-    const amt = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 10, `+ ${amount} COINS`, {
-      fontSize: '30px', color: '#88ff44', fontFamily: 'monospace', stroke: '#000', strokeThickness: 4,
+    const amt = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 10, `+ ${amount} монет`, {
+      fontSize: '28px', color: '#88ff44', fontFamily: 'monospace', stroke: '#000', strokeThickness: 4,
     }).setOrigin(0.5).setDepth(D + 1);
-    const sub2 = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 + 40, 'Come back tomorrow\nfor more rewards!', {
+    const sub2 = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 + 40, 'Повертайся завтра\nза новою нагородою!', {
       fontSize: '14px', color: '#888888', fontFamily: 'monospace', align: 'center',
     }).setOrigin(0.5).setDepth(D + 1);
 
     const btnBg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 + 90, 160, 44, 0x005bbb)
       .setDepth(D + 1).setStrokeStyle(2, 0xffd700).setInteractive({ useHandCursor: true });
-    const btnT = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 + 90, 'Claim!', {
+    const btnT = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 + 90, 'Забрати!', {
       fontSize: '18px', color: '#ffd700', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(D + 2);
 
@@ -694,7 +755,7 @@ export default class GameScene extends Phaser.Scene {
     const container = this.add.container(x, y, [sprite]).setDepth(4);
     this.allies.push({ container, shootTimer: Phaser.Math.Between(0, CONFIG.ALLY_FIRE_RATE), targetX: x, targetY: y });
     this.spawnParticles(x, y, 'particle_bonus', 10);
-    const txt = this.add.text(x, y - 40, '+ ALLY', {
+    const txt = this.add.text(x, y - 40, '+ СОЮЗНИК', {
       fontSize: '18px', color: '#00ccff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(15);
     this.tweens.add({ targets: txt, y: y - 100, alpha: 0, duration: 1000, onComplete: () => txt.destroy() });
@@ -833,37 +894,42 @@ export default class GameScene extends Phaser.Scene {
     const fY = this.add.rectangle(CONFIG.WIDTH / 2, 198, 280, 58, 0xffd700).setDepth(D + 1);
     this.tweens.add({ targets: [fB, fY], scaleX: { from: 0, to: 1 }, duration: 500, ease: 'Back.Out' });
 
-    const title = this.add.text(CONFIG.WIDTH / 2, 162, 'VICTORY!', {
+    const title = this.add.text(CONFIG.WIDTH / 2, 162, 'ПЕРЕМОГА!', {
       fontSize: '42px', color: '#fff', fontFamily: 'monospace', stroke: '#000', strokeThickness: 6,
     }).setOrigin(0.5).setDepth(D + 2);
     this.tweens.add({ targets: title, scaleX: { from: 0.5, to: 1 }, scaleY: { from: 0.5, to: 1 }, duration: 400, ease: 'Back.Out' });
 
     const stats = this.add.text(CONFIG.WIDTH / 2, 320,
-      `$ Earned: ${this.playerCoins}  (+${bonus} bonus)\n` +
-      `> Killed: ${this.enemiesKilled}\n` +
-      `[=] Convoy: ${this.allies.length + 1}\n\n` +
-      `$ Total: ${saved.totalCoins}`,
+      `$ Зароблено: ${this.playerCoins}  (+${bonus} бонус)\n` +
+      `> Знищено: ${this.enemiesKilled}\n` +
+      `[=] Конвой: ${this.allies.length + 1}\n\n` +
+      `$ Всього: ${saved.totalCoins}`,
       { fontSize: '17px', color: '#ccffcc', fontFamily: 'monospace', align: 'center', lineSpacing: 8 }
     ).setOrigin(0.5).setDepth(D + 2);
 
-    const playBg = this.add.rectangle(CONFIG.WIDTH / 2, 524, 220, 58, 0x005bbb).setDepth(D + 2)
-      .setStrokeStyle(3, 0xffd700).setInteractive({ useHandCursor: true });
-    this.add.text(CONFIG.WIDTH / 2, 524, '▶  Play Again', { fontSize: '22px', color: '#FFD700', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 3);
+    const lootBg = this.add.rectangle(CONFIG.WIDTH / 2, 524, 220, 58, 0x1a3300).setDepth(D + 2)
+      .setStrokeStyle(3, 0x88ff44).setInteractive({ useHandCursor: true });
+    this.add.text(CONFIG.WIDTH / 2, 524, '📦 ВІДКРИТИ СКРИНЮ', { fontSize: '18px', color: '#88ff44', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 3);
+    lootBg.on('pointerdown', () => {
+      this.clearOverlay();
+      this.scene.start('LootboxScene', { coins: this.playerCoins, killed: this.enemiesKilled, convoy: this.allies.length + 1, victory: true });
+    });
+    lootBg.on('pointerover', () => lootBg.setFillStyle(0x2a5500));
+    lootBg.on('pointerout',  () => lootBg.setFillStyle(0x1a3300));
+
+    const playBg = this.add.rectangle(CONFIG.WIDTH / 2, 598, 200, 46, 0x005bbb).setDepth(D + 2)
+      .setStrokeStyle(2, 0xffd700).setInteractive({ useHandCursor: true });
+    this.add.text(CONFIG.WIDTH / 2, 598, '▶  Грати знову', { fontSize: '17px', color: '#FFD700', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 3);
     playBg.on('pointerdown', () => this.startGame());
     playBg.on('pointerover', () => playBg.setFillStyle(0x1177dd));
-    playBg.on('pointerout', () => playBg.setFillStyle(0x005bbb));
-
-    const garageBg = this.add.rectangle(CONFIG.WIDTH / 2, 598, 180, 46, 0x0d2200).setDepth(D + 2)
-      .setStrokeStyle(2, 0x44aa00).setInteractive({ useHandCursor: true });
-    this.add.text(CONFIG.WIDTH / 2, 598, '[G] Upgrade', { fontSize: '17px', color: '#88ff44', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 3);
-    garageBg.on('pointerdown', () => { this.clearOverlay(); this.clearMenu(); this.scene.start('GarageScene'); });
+    playBg.on('pointerout',  () => playBg.setFillStyle(0x005bbb));
 
     const menuBg = this.add.rectangle(CONFIG.WIDTH / 2, 656, 180, 46, 0x111111).setDepth(D + 2)
       .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true });
-    this.add.text(CONFIG.WIDTH / 2, 656, '< Menu', { fontSize: '17px', color: '#888888', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 3);
+    this.add.text(CONFIG.WIDTH / 2, 656, '< Меню', { fontSize: '17px', color: '#888888', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 3);
     menuBg.on('pointerdown', () => { this.clearOverlay(); this.showMenu(); });
 
-    this.overlayObjects = [bg, fB, fY, title, stats, playBg, garageBg, menuBg];
+    this.overlayObjects = [bg, fB, fY, title, stats, lootBg, playBg, menuBg];
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -884,34 +950,39 @@ export default class GameScene extends Phaser.Scene {
       const D = 25;
 
       const bg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x1a0000, 0.88).setDepth(D);
-      const title = this.add.text(CONFIG.WIDTH / 2, 240, 'GAME OVER', {
-        fontSize: '40px', color: '#ff3333', fontFamily: 'monospace', stroke: '#000', strokeThickness: 6,
+      const title = this.add.text(CONFIG.WIDTH / 2, 240, 'РЕЙД ПРОВАЛЕНО', {
+        fontSize: '36px', color: '#ff3333', fontFamily: 'monospace', stroke: '#000', strokeThickness: 6,
       }).setOrigin(0.5).setDepth(D + 1);
       this.tweens.add({ targets: title, scaleX: { from: 1.5, to: 1 }, scaleY: { from: 1.5, to: 1 }, duration: 300, ease: 'Back.Out' });
 
-      const stats = this.add.text(CONFIG.WIDTH / 2, 370,
-        `$ ${this.playerCoins}   > ${this.enemiesKilled}   [=] ${this.allies.length + 1}`,
+      const stats = this.add.text(CONFIG.WIDTH / 2, 340,
+        `$ ${this.playerCoins}   × ${this.enemiesKilled}   [=] ${this.allies.length + 1}`,
         { fontSize: '20px', color: '#cccccc', fontFamily: 'monospace', align: 'center' }
       ).setOrigin(0.5).setDepth(D + 1);
 
-      const restartBg = this.add.rectangle(CONFIG.WIDTH / 2, 480, 200, 56, 0xaa0000).setDepth(D + 1)
+      const lootBg = this.add.rectangle(CONFIG.WIDTH / 2, 432, 220, 54, 0x1a1a00).setDepth(D + 1)
+        .setStrokeStyle(3, 0xaaaa00).setInteractive({ useHandCursor: true });
+      this.add.text(CONFIG.WIDTH / 2, 432, '📦 ВІДКРИТИ СКРИНЮ', { fontSize: '16px', color: '#dddd44', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      lootBg.on('pointerdown', () => {
+        this.clearOverlay();
+        this.scene.start('LootboxScene', { coins: this.playerCoins, killed: this.enemiesKilled, convoy: this.allies.length + 1, victory: false });
+      });
+      lootBg.on('pointerover', () => lootBg.setFillStyle(0x2a2a00));
+      lootBg.on('pointerout',  () => lootBg.setFillStyle(0x1a1a00));
+
+      const restartBg = this.add.rectangle(CONFIG.WIDTH / 2, 500, 200, 52, 0xaa0000).setDepth(D + 1)
         .setStrokeStyle(3, 0xff6666).setInteractive({ useHandCursor: true });
-      this.add.text(CONFIG.WIDTH / 2, 480, 'RESTART', { fontSize: '22px', color: '#fff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      this.add.text(CONFIG.WIDTH / 2, 500, 'ПОВТОРИТИ', { fontSize: '20px', color: '#fff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       restartBg.on('pointerdown', () => this.startGame());
       restartBg.on('pointerover', () => restartBg.setFillStyle(0xdd2222));
-      restartBg.on('pointerout', () => restartBg.setFillStyle(0xaa0000));
+      restartBg.on('pointerout',  () => restartBg.setFillStyle(0xaa0000));
 
-      const garageBg = this.add.rectangle(CONFIG.WIDTH / 2, 548, 200, 46, 0x0d2200).setDepth(D + 1)
-        .setStrokeStyle(2, 0x44aa00).setInteractive({ useHandCursor: true });
-      this.add.text(CONFIG.WIDTH / 2, 548, '[G] Upgrade', { fontSize: '16px', color: '#88ff44', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
-      garageBg.on('pointerdown', () => { this.clearOverlay(); this.scene.start('GarageScene'); });
-
-      const menuBg = this.add.rectangle(CONFIG.WIDTH / 2, 608, 200, 46, 0x111111).setDepth(D + 1)
+      const menuBg = this.add.rectangle(CONFIG.WIDTH / 2, 566, 200, 46, 0x111111).setDepth(D + 1)
         .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true });
-      this.add.text(CONFIG.WIDTH / 2, 608, '< Menu', { fontSize: '18px', color: '#888888', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      this.add.text(CONFIG.WIDTH / 2, 566, '< Меню', { fontSize: '18px', color: '#888888', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       menuBg.on('pointerdown', () => { this.clearOverlay(); this.showMenu(); });
 
-      this.overlayObjects = [bg, title, stats, restartBg, garageBg, menuBg];
+      this.overlayObjects = [bg, title, stats, lootBg, restartBg, menuBg];
     });
   }
 

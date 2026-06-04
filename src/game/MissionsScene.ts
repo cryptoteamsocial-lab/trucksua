@@ -22,11 +22,11 @@ export default class MissionsScene extends Phaser.Scene {
   }
 
   private createHeader() {
-    this.add.text(CONFIG.WIDTH / 2, 38, 'MISSIONS', {
+    this.add.text(CONFIG.WIDTH / 2, 38, 'МІСІЇ', {
       fontSize: '32px', color: '#FFD700', fontFamily: 'monospace', stroke: '#000', strokeThickness: 5,
     }).setOrigin(0.5);
 
-    this.add.text(CONFIG.WIDTH / 2, 74, 'Daily missions — reset at midnight', {
+    this.add.text(CONFIG.WIDTH / 2, 74, 'Щоденні місії — оновлення опівночі', {
       fontSize: '12px', color: '#555566', fontFamily: 'monospace',
     }).setOrigin(0.5);
 
@@ -86,12 +86,12 @@ export default class MissionsScene extends Phaser.Scene {
       // Status / claim button
       if (claimed) {
         this.missionCards.push(this.add.text(CONFIG.WIDTH / 2, y + 130,
-          '✓ CLAIMED', { fontSize: '16px', color: '#445544', fontFamily: 'monospace' }
+          '✓ ОТРИМАНО', { fontSize: '16px', color: '#445544', fontFamily: 'monospace' }
         ).setOrigin(0.5));
       } else if (done) {
         const claimBg = this.add.rectangle(CONFIG.WIDTH / 2, y + 130, 180, 42, 0x1a3300)
           .setStrokeStyle(2, 0x88ff44).setInteractive({ useHandCursor: true });
-        const claimT = this.add.text(CONFIG.WIDTH / 2, y + 130, 'CLAIM REWARD',
+        const claimT = this.add.text(CONFIG.WIDTH / 2, y + 130, 'ЗАБРАТИ НАГОРОДУ',
           { fontSize: '15px', color: '#88ff44', fontFamily: 'monospace' }
         ).setOrigin(0.5);
         claimBg.on('pointerdown', () => {
@@ -106,21 +106,21 @@ export default class MissionsScene extends Phaser.Scene {
         this.missionCards.push(claimBg, claimT);
       } else {
         this.missionCards.push(this.add.text(CONFIG.WIDTH / 2, y + 130,
-          'In progress...', { fontSize: '14px', color: '#334455', fontFamily: 'monospace' }
+          'В процесі...', { fontSize: '14px', color: '#334455', fontFamily: 'monospace' }
         ).setOrigin(0.5));
       }
     });
 
     // Footer hint
     this.missionCards.push(this.add.text(CONFIG.WIDTH / 2, 760,
-      'Progress updates after each run', { fontSize: '12px', color: '#334', fontFamily: 'monospace' }
+      'Прогрес оновлюється після кожного рейду', { fontSize: '12px', color: '#334', fontFamily: 'monospace' }
     ).setOrigin(0.5));
   }
 
   private createBackButton() {
     const btnBg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 40, 200, 46, 0x111111)
       .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true });
-    this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 40, '< Back to Menu', {
+    this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 40, '< До меню', {
       fontSize: '16px', color: '#888', fontFamily: 'monospace',
     }).setOrigin(0.5);
     btnBg.on('pointerdown', () => this.scene.start('GameScene'));

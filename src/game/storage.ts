@@ -1,5 +1,5 @@
 import type { SavedData, UpgradeData, VehicleId, Mission, MissionGoalType } from './types';
-import { MISSIONS_POOL } from './config';
+import { MISSIONS_POOL, UPGRADE_MAX_LEVELS } from './config';
 
 const KEY = 'steel_road_data';
 
@@ -66,7 +66,7 @@ export function getUpgradeCost(id: keyof UpgradeData, level: number): number {
 export function upgradeLevel(id: keyof UpgradeData): boolean {
   const data = loadData();
   const current = data.upgrades[id];
-  if (current >= 5) return false;
+  if (current >= UPGRADE_MAX_LEVELS[id]) return false;
   const cost = getUpgradeCost(id, current);
   if (data.totalCoins < cost) return false;
   data.totalCoins -= cost;

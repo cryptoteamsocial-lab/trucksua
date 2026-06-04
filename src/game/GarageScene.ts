@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CONFIG, UPGRADES, VEHICLES, getStatFromUpgrade } from './config';
+import { CONFIG, UPGRADES, VEHICLES, WEAPON_LEVELS, UPGRADE_MAX_LEVELS, getStatFromUpgrade } from './config';
 import { loadData, upgradeLevel, getUpgradeCost, buyVehicle, selectVehicle } from './storage';
 import { createPixelTextures } from './PixelArt';
 import type { UpgradeId, VehicleId } from './types';
@@ -22,7 +22,6 @@ export default class GarageScene extends Phaser.Scene {
   constructor() { super({ key: 'GarageScene' }); }
 
   create() {
-    // Need pixel textures for vehicle previews
     if (!this.textures.exists('vehicle_scout')) createPixelTextures(this);
 
     this.createBackground();
@@ -39,7 +38,7 @@ export default class GarageScene extends Phaser.Scene {
   }
 
   private createHeader() {
-    this.add.text(CONFIG.WIDTH / 2, 38, 'GARAGE', {
+    this.add.text(CONFIG.WIDTH / 2, 38, 'ГАРАЖ', {
       fontSize: '32px', color: '#FFD700', fontFamily: 'monospace', stroke: '#000', strokeThickness: 5,
     }).setOrigin(0.5);
 
@@ -53,13 +52,13 @@ export default class GarageScene extends Phaser.Scene {
     const tabY = 118;
     this.tabBtnUpgrades = this.add.rectangle(CONFIG.WIDTH / 2 - 80, tabY, 144, 38, 0x1a3300)
       .setStrokeStyle(2, 0x44aa00).setInteractive({ useHandCursor: true });
-    this.tabTxtUpgrades = this.add.text(CONFIG.WIDTH / 2 - 80, tabY, 'UPGRADES', {
+    this.tabTxtUpgrades = this.add.text(CONFIG.WIDTH / 2 - 80, tabY, 'АПГРЕЙДИ', {
       fontSize: '14px', color: '#88ff44', fontFamily: 'monospace',
     }).setOrigin(0.5);
 
     this.tabBtnVehicles = this.add.rectangle(CONFIG.WIDTH / 2 + 80, tabY, 144, 38, 0x111111)
       .setStrokeStyle(2, 0x333333).setInteractive({ useHandCursor: true });
-    this.tabTxtVehicles = this.add.text(CONFIG.WIDTH / 2 + 80, tabY, 'VEHICLES', {
+    this.tabTxtVehicles = this.add.text(CONFIG.WIDTH / 2 + 80, tabY, 'ТЕХНІКА', {
       fontSize: '14px', color: '#555555', fontFamily: 'monospace',
     }).setOrigin(0.5);
 
@@ -69,7 +68,6 @@ export default class GarageScene extends Phaser.Scene {
 
   private switchTab(tab: Tab) {
     this.currentTab = tab;
-    // Update tab visuals
     if (tab === 'upgrades') {
       this.tabBtnUpgrades.setFillStyle(0x1a3300).setStrokeStyle(2, 0x44aa00);
       this.tabTxtUpgrades.setColor('#88ff44');
@@ -107,7 +105,8 @@ export default class GarageScene extends Phaser.Scene {
     const data = loadData();
     const level = data.upgrades[id];
     const upg = UPGRADES.find(u => u.id === id)!;
-    const maxed = level >= 5;
+    const maxLevel = UPGRADE_MAX_LEVELS[id];
+    const maxed = level >= maxLevel;
     const cost = maxed ? 0 : getUpgradeCost(id, level);
     const canAfford = !maxed && data.totalCoins >= cost;
 
@@ -118,17 +117,30 @@ export default class GarageScene extends Phaser.Scene {
     c.add(this.add.text(0, -56, upg.icon, { fontSize: '22px', color: maxed ? '#ffd700' : '#88ccff', fontFamily: 'monospace' }).setOrigin(0.5));
     c.add(this.add.text(0, -32, upg.label.toUpperCase(), { fontSize: '14px', color: '#fff', fontFamily: 'monospace' }).setOrigin(0.5));
 
-    for (let s = 0; s < 5; s++) {
-      c.add(this.add.text(-40 + s * 20, -8, s < level ? '★' : '☆', {
-        fontSize: '14px', color: s < level ? '#ffd700' : '#333', fontFamily: 'monospace',
+    // Stars (show up to 5 for visual clarity even if max=10)
+    const displayMax = Math.min(maxLevel, 5);
+    const displayLevel = Math.min(level, 5);
+    for (let s = 0; s < displayMax; s++) {
+      c.add(this.add.text(-40 + s * (80 / displayMax), -8, s < displayLevel ? '★' : '☆', {
+        fontSize: '14px', color: s < displayLevel ? '#ffd700' : '#333', fontFamily: 'monospace',
       }).setOrigin(0.5));
     }
-    c.add(this.add.text(0, 16, upg.description, { fontSize: '11px', color: '#666', fontFamily: 'monospace', align: 'center' }).setOrigin(0.5));
-    c.add(this.add.text(0, 34, level > 0 ? `+${getStatFromUpgrade(id, level)}` : 'base', { fontSize: '13px', color: '#44cc44', fontFamily: 'monospace' }).setOrigin(0.5));
+
+    // Weapon: show current level name
+    if (id === 'weapon' && level > 0) {
+      const wname = WEAPON_LEVELS[level - 1];
+      c.add(this.add.text(0, 14, wname.icon + ' ' + wname.name, {
+        fontSize: '10px', color: '#88ccff', fontFamily: 'monospace', align: 'center',
+      }).setOrigin(0.5));
+    } else {
+      c.add(this.add.text(0, 16, upg.description, { fontSize: '11px', color: '#666', fontFamily: 'monospace', align: 'center' }).setOrigin(0.5));
+    }
+
+    c.add(this.add.text(0, 34, level > 0 ? `+${getStatFromUpgrade(id, level)}` : 'база', { fontSize: '13px', color: '#44cc44', fontFamily: 'monospace' }).setOrigin(0.5));
 
     if (maxed) {
       c.add(this.add.rectangle(0, 62, CARD_W - 20, 34, 0x1a2200).setStrokeStyle(2, 0xffd700));
-      c.add(this.add.text(0, 62, 'MAX', { fontSize: '16px', color: '#ffd700', fontFamily: 'monospace' }).setOrigin(0.5));
+      c.add(this.add.text(0, 62, 'МАКС', { fontSize: '16px', color: '#ffd700', fontFamily: 'monospace' }).setOrigin(0.5));
     } else {
       const btnBg = this.add.rectangle(0, 62, CARD_W - 20, 34, canAfford ? 0x1a4400 : 0x1a1a1a)
         .setStrokeStyle(2, canAfford ? 0x44aa00 : 0x333333);
@@ -138,7 +150,7 @@ export default class GarageScene extends Phaser.Scene {
         btnBg.setInteractive({ useHandCursor: true });
         btnBg.on('pointerdown', () => { upgradeLevel(id); this.renderTab(); this.cameras.main.flash(160, 40, 180, 40, true); });
         btnBg.on('pointerover', () => btnBg.setFillStyle(0x2a6600));
-        btnBg.on('pointerout', () => btnBg.setFillStyle(0x1a4400));
+        btnBg.on('pointerout',  () => btnBg.setFillStyle(0x1a4400));
       }
     }
     return c;
@@ -156,9 +168,9 @@ export default class GarageScene extends Phaser.Scene {
     const y = GRID_Y + 2 * (CARD_H + CARD_GAP) + 20;
     const container = this.add.container(CONFIG.WIDTH / 2, y);
     const bg = this.add.rectangle(0, 44, CONFIG.WIDTH - 30, 92, 0x0a1218).setStrokeStyle(1, 0x223322);
-    const title = this.add.text(0, 6, `STATS  [${veh.label.toUpperCase()}]`, { fontSize: '12px', color: '#666', fontFamily: 'monospace' }).setOrigin(0.5);
+    const title = this.add.text(0, 6, `СТАТС  [${veh.label.toUpperCase()}]`, { fontSize: '12px', color: '#666', fontFamily: 'monospace' }).setOrigin(0.5);
     const stats = this.add.text(0, 52,
-      `Spd: ${speed}   HP: ${hp}   Fire: ${fire}ms   Dmg: ${dmg}x`,
+      `Шв: ${speed}   HP: ${hp}   Черга: ${fire}мс   Урон: ${dmg}x`,
       { fontSize: '13px', color: '#aaffaa', fontFamily: 'monospace', align: 'center' }
     ).setOrigin(0.5);
     container.add([bg, title, stats]);
@@ -168,7 +180,6 @@ export default class GarageScene extends Phaser.Scene {
   // ─── Vehicles tab ──────────────────────────────────────────────────────────
   private buildVehiclesTab() {
     const data = loadData();
-
     VEHICLES.forEach((veh, i) => {
       const y = GRID_Y + i * 190;
       this.contentObjects.push(...this.buildVehicleCard(veh, y, data.ownedVehicles, data.selectedVehicle));
@@ -192,11 +203,9 @@ export default class GarageScene extends Phaser.Scene {
       .setStrokeStyle(2, isSelected ? 0xffd700 : isOwned ? 0x335533 : 0x222222);
     objects.push(cardBg);
 
-    // Vehicle preview sprite
     const preview = this.add.image(cx - 120, y + 82, veh.textureKey).setScale(1.1);
     objects.push(preview);
 
-    // Info
     objects.push(this.add.text(cx - 40, y + 30, veh.label.toUpperCase(), {
       fontSize: '18px', color: isSelected ? '#ffd700' : '#ffffff', fontFamily: 'monospace',
     }).setOrigin(0, 0.5));
@@ -206,28 +215,27 @@ export default class GarageScene extends Phaser.Scene {
     }).setOrigin(0, 0.5));
 
     objects.push(this.add.text(cx - 40, y + 98,
-      `Spd:${veh.baseSpeed}  HP:${veh.baseHp}  Fire:${veh.baseFireRate}ms`,
+      `Шв:${veh.baseSpeed}  HP:${veh.baseHp}  Черга:${veh.baseFireRate}мс`,
       { fontSize: '12px', color: '#66aa66', fontFamily: 'monospace' }
     ).setOrigin(0, 0.5));
 
-    const shotsLabel = veh.spreadShots > 1 ? `${veh.spreadShots}x SPREAD` : '1x SINGLE';
-    objects.push(this.add.text(cx - 40, y + 116, `Shot: ${shotsLabel}`, {
+    const shotsLabel = veh.spreadShots > 1 ? `${veh.spreadShots}x РОЗСІЯНИЙ` : '1x ОДИНОЧНИЙ';
+    objects.push(this.add.text(cx - 40, y + 116, `Постріл: ${shotsLabel}`, {
       fontSize: '12px', color: '#aaddff', fontFamily: 'monospace',
     }).setOrigin(0, 0.5));
 
-    // Action button
     const btnY = y + 148;
     if (isSelected) {
       const selBg = this.add.rectangle(cx + 80, btnY, 120, 36, 0x1a3300).setStrokeStyle(2, 0xffd700);
       objects.push(selBg);
-      objects.push(this.add.text(cx + 80, btnY, '✓ ACTIVE', { fontSize: '13px', color: '#ffd700', fontFamily: 'monospace' }).setOrigin(0.5));
+      objects.push(this.add.text(cx + 80, btnY, '✓ АКТИВНА', { fontSize: '13px', color: '#ffd700', fontFamily: 'monospace' }).setOrigin(0.5));
     } else if (isOwned) {
       const selBg = this.add.rectangle(cx + 80, btnY, 120, 36, 0x113311).setStrokeStyle(2, 0x44aa00).setInteractive({ useHandCursor: true });
       objects.push(selBg);
-      objects.push(this.add.text(cx + 80, btnY, 'SELECT', { fontSize: '14px', color: '#88ff44', fontFamily: 'monospace' }).setOrigin(0.5));
+      objects.push(this.add.text(cx + 80, btnY, 'ВИБРАТИ', { fontSize: '14px', color: '#88ff44', fontFamily: 'monospace' }).setOrigin(0.5));
       selBg.on('pointerdown', () => { selectVehicle(veh.id); this.renderTab(); });
       selBg.on('pointerover', () => selBg.setFillStyle(0x1e4d1e));
-      selBg.on('pointerout', () => selBg.setFillStyle(0x113311));
+      selBg.on('pointerout',  () => selBg.setFillStyle(0x113311));
     } else {
       const btnColor = canAfford ? 0x0a1a2e : 0x111111;
       const btnBorder = canAfford ? 0x3377cc : 0x333333;
@@ -240,7 +248,7 @@ export default class GarageScene extends Phaser.Scene {
         buyBg.setInteractive({ useHandCursor: true });
         buyBg.on('pointerdown', () => { buyVehicle(veh.id, veh.price); this.renderTab(); });
         buyBg.on('pointerover', () => buyBg.setFillStyle(0x143050));
-        buyBg.on('pointerout', () => buyBg.setFillStyle(btnColor));
+        buyBg.on('pointerout',  () => buyBg.setFillStyle(btnColor));
       }
     }
 
@@ -255,12 +263,12 @@ export default class GarageScene extends Phaser.Scene {
   private createBackButton() {
     const btnBg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 44, 200, 48, 0x111111)
       .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true });
-    this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 44, '< Back to Menu', {
+    this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 44, '< До меню', {
       fontSize: '16px', color: '#888', fontFamily: 'monospace',
     }).setOrigin(0.5);
     btnBg.on('pointerdown', () => this.scene.start('GameScene'));
     btnBg.on('pointerover', () => btnBg.setFillStyle(0x222222));
-    btnBg.on('pointerout', () => btnBg.setFillStyle(0x111111));
+    btnBg.on('pointerout',  () => btnBg.setFillStyle(0x111111));
     this.input.keyboard!.on('keydown-ESC', () => this.scene.start('GameScene'));
   }
 }

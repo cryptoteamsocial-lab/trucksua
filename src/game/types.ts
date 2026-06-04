@@ -1,5 +1,6 @@
 export type GameState = 'MENU' | 'PLAYING' | 'VICTORY' | 'GAME_OVER';
 export type EnemyType = 'WALKER' | 'HEAVY' | 'RUNNER' | 'BOMBER';
+export type LootboxTier = 'field' | 'volunteer' | 'gold';
 export type BonusType = 'ALLY' | 'REPAIR';
 export type UpgradeId = 'engine' | 'armor' | 'weapon' | 'damage';
 export type VehicleId = 'humvee' | 'scout' | 'apc';

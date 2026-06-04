@@ -1,4 +1,4 @@
-import type { UpgradeId, VehicleId, MissionGoalType } from './types';
+import type { UpgradeId, VehicleId, MissionGoalType, EnemyType } from './types';
 
 export const CONFIG = {
   WIDTH: 390,
@@ -45,6 +45,52 @@ export const CONFIG = {
   },
 };
 
+// ─── Enemy display names ───────────────────────────────────────────────────────
+export const ENEMY_NAMES: Record<EnemyType, string> = {
+  WALKER:  'Орк',
+  HEAVY:   'Бронеорк',
+  RUNNER:  'Шустун',
+  BOMBER:  'Чмобік',
+};
+
+// ─── Weapon level names (10 levels) ───────────────────────────────────────────
+export const WEAPON_LEVELS: { name: string; icon: string }[] = [
+  { name: 'Рогатка ТрО',      icon: '🪃' },
+  { name: 'Бандеромет',       icon: '📦' },
+  { name: 'Вогнемет Гніву',   icon: '🔥' },
+  { name: 'Паляниця Mk.2',    icon: '🫓' },
+  { name: 'Джавелінчик',      icon: '🚀' },
+  { name: 'Святий HIMARS',    icon: '⚡' },
+  { name: 'Тризуб Гніву',     icon: '🔱' },
+  { name: 'Бавовна Cannon',   icon: '💥' },
+  { name: 'Фантом Неба',      icon: '👻' },
+  { name: 'Кара Божа',        icon: '☄️' },
+];
+
+// Max levels per upgrade (weapon = 10, others = 5)
+export const UPGRADE_MAX_LEVELS: Record<UpgradeId, number> = {
+  engine: 5,
+  armor:  5,
+  weapon: 10,
+  damage: 5,
+};
+
+// ─── Charity mock data (replace with API later) ────────────────────────────────
+export const CHARITY = {
+  title: 'Козак для підрозділу',
+  unit: '3-тя окремий штурмовий батальйон',
+  raised: 39250,
+  goal: 50000,
+  vehicle: 'Mitsubishi L200',
+  description: 'Позашляховик для евакуації\nпоранених бійців під Авдіївкою',
+  donateUrl: 'https://t.me/bавовнаroad', // placeholder
+  history: [
+    { name: 'Toyota Hilux',   date: '12.04.2025', unit: '1-ша ОШБр' },
+    { name: 'Mitsubishi L200', date: '28.03.2025', unit: '3-тя ОШБ' },
+    { name: 'Ford Ranger',    date: '10.03.2025', unit: '80-та ОДШБр' },
+  ],
+};
+
 // ─── Upgrades ─────────────────────────────────────────────────────────────────
 export interface UpgradeDef {
   id: UpgradeId;
@@ -55,10 +101,26 @@ export interface UpgradeDef {
 }
 
 export const UPGRADES: UpgradeDef[] = [
-  { id: 'engine', label: 'Engine',  icon: '[E]', description: 'Speed +20/lvl',    bonuses: [20,40,60,90,130] },
-  { id: 'armor',  label: 'Armor',   icon: '[A]', description: 'Max HP +20/lvl',   bonuses: [20,40,60,80,100] },
-  { id: 'weapon', label: 'Weapon',  icon: '[W]', description: 'Fire rate faster', bonuses: [30,60,90,120,160] },
-  { id: 'damage', label: 'Damage',  icon: '[D]', description: '+1 dmg/lvl',       bonuses: [1,2,3,4,5] },
+  {
+    id: 'engine', label: 'Двигун', icon: '[E]',
+    description: 'Швидкість +20/рів',
+    bonuses: [20, 40, 60, 90, 130],
+  },
+  {
+    id: 'armor', label: 'Броня', icon: '[A]',
+    description: 'Макс HP +20/рів',
+    bonuses: [20, 40, 60, 80, 100],
+  },
+  {
+    id: 'weapon', label: 'Зброя', icon: '[W]',
+    description: 'Швидкість пострілу',
+    bonuses: [30, 55, 80, 110, 145, 180, 220, 265, 315, 380],
+  },
+  {
+    id: 'damage', label: 'Урон', icon: '[D]',
+    description: '+1 урон/рів',
+    bonuses: [1, 2, 3, 4, 5],
+  },
 ];
 
 export function getStatFromUpgrade(id: UpgradeId, level: number): number {
@@ -71,20 +133,20 @@ export interface VehicleDef {
   id: VehicleId;
   label: string;
   description: string;
-  price: number;           // 0 = free/default
+  price: number;
   textureKey: string;
   baseHp: number;
   baseSpeed: number;
   baseFireRate: number;
-  spreadShots: number;     // 1=single, 3=triple
-  color: number;           // accent color for selection UI
+  spreadShots: number;
+  color: number;
 }
 
 export const VEHICLES: VehicleDef[] = [
   {
     id: 'humvee',
-    label: 'Humvee',
-    description: 'Balanced. Good all-round\nmilitary pickup.',
+    label: 'Хамві',
+    description: 'Збалансований. Хороший\nзагальновійськовий пікап.',
     price: 0,
     textureKey: 'player',
     baseHp: 100,
@@ -95,8 +157,8 @@ export const VEHICLES: VehicleDef[] = [
   },
   {
     id: 'scout',
-    label: 'Scout',
-    description: 'Fast & agile. Fires rapid\nburst. Low HP.',
+    label: 'Скаут',
+    description: 'Швидкий та маневрений.\nШвидка черга. Мало HP.',
     price: 350,
     textureKey: 'vehicle_scout',
     baseHp: 70,
@@ -107,8 +169,8 @@ export const VEHICLES: VehicleDef[] = [
   },
   {
     id: 'apc',
-    label: 'APC',
-    description: 'Heavy armor. Triple\nspread shot. Slow.',
+    label: 'БТР',
+    description: 'Важка броня. Потрійний\nрозсіяний постріл. Повільний.',
     price: 800,
     textureKey: 'vehicle_apc',
     baseHp: 180,
@@ -129,17 +191,17 @@ export interface MissionDef {
 }
 
 export const MISSIONS_POOL: MissionDef[] = [
-  { id: 'kill_10',      label: 'Destroy 10 enemies',       goalType: 'kill',         goal: 10, reward: 60  },
-  { id: 'kill_25',      label: 'Destroy 25 enemies',       goalType: 'kill',         goal: 25, reward: 140 },
-  { id: 'kill_50',      label: 'Destroy 50 enemies',       goalType: 'kill',         goal: 50, reward: 280 },
-  { id: 'kill_heavy_3', label: 'Destroy 3 Heavy units',    goalType: 'kill_heavy',   goal: 3,  reward: 110 },
-  { id: 'kill_heavy_8', label: 'Destroy 8 Heavy units',    goalType: 'kill_heavy',   goal: 8,  reward: 220 },
-  { id: 'kill_bomb_2',  label: 'Destroy 2 Bombers',        goalType: 'kill_bomber',  goal: 2,  reward: 120 },
-  { id: 'coins_200',    label: 'Collect 200 coins in run', goalType: 'coins',        goal: 200,reward: 80  },
-  { id: 'coins_400',    label: 'Collect 400 coins in run', goalType: 'coins',        goal: 400,reward: 160 },
-  { id: 'convoy_4',     label: 'Build convoy of 4',        goalType: 'convoy',       goal: 4,  reward: 130 },
-  { id: 'convoy_6',     label: 'Build convoy of 6',        goalType: 'convoy',       goal: 6,  reward: 200 },
-  { id: 'run_1',        label: 'Complete 1 full run',      goalType: 'run',          goal: 1,  reward: 100 },
-  { id: 'run_3',        label: 'Complete 3 full runs',     goalType: 'run',          goal: 3,  reward: 250 },
-  { id: 'survive_60',   label: 'Survive 60 seconds',       goalType: 'survive',      goal: 60, reward: 90  },
+  { id: 'kill_10',      label: 'Знищити 10 ворогів',        goalType: 'kill',         goal: 10,  reward: 60  },
+  { id: 'kill_25',      label: 'Знищити 25 ворогів',        goalType: 'kill',         goal: 25,  reward: 140 },
+  { id: 'kill_50',      label: 'Знищити 50 ворогів',        goalType: 'kill',         goal: 50,  reward: 280 },
+  { id: 'kill_heavy_3', label: 'Знищити 3 Бронеорки',       goalType: 'kill_heavy',   goal: 3,   reward: 110 },
+  { id: 'kill_heavy_8', label: 'Знищити 8 Бронеорок',       goalType: 'kill_heavy',   goal: 8,   reward: 220 },
+  { id: 'kill_bomb_2',  label: 'Знищити 2 Чмобіки',         goalType: 'kill_bomber',  goal: 2,   reward: 120 },
+  { id: 'coins_200',    label: 'Зібрати 200 монет за рейд', goalType: 'coins',        goal: 200, reward: 80  },
+  { id: 'coins_400',    label: 'Зібрати 400 монет за рейд', goalType: 'coins',        goal: 400, reward: 160 },
+  { id: 'convoy_4',     label: 'Зібрати конвой з 4 машин',  goalType: 'convoy',       goal: 4,   reward: 130 },
+  { id: 'convoy_6',     label: 'Зібрати конвой з 6 машин',  goalType: 'convoy',       goal: 6,   reward: 200 },
+  { id: 'run_1',        label: 'Завершити 1 рейд',          goalType: 'run',          goal: 1,   reward: 100 },
+  { id: 'run_3',        label: 'Завершити 3 рейди',         goalType: 'run',          goal: 3,   reward: 250 },
+  { id: 'survive_60',   label: 'Вижити 60 секунд',          goalType: 'survive',      goal: 60,  reward: 90  },
 ];
