@@ -21,6 +21,7 @@ interface Enemy {
   hpBar?: Phaser.GameObjects.Rectangle;
   hpBarBg?: Phaser.GameObjects.Rectangle;
   vx?: number; // for bomber/runner lateral movement
+  dying?: boolean;
 }
 interface Bullet  { sprite: Phaser.GameObjects.Image; speed: number; dmg: number; }
 interface Obstacle { sprite: Phaser.GameObjects.Image; hw: number; hh: number; }
@@ -541,24 +542,36 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private killEnemy(index: number) {
+    if (index < 0 || index >= this.enemies.length) return;
     const e = this.enemies[index];
+    if (e.dying) return; // guard: prevent double-kill / infinite recursion
+    e.dying = true;
+
     const nx = e.container.x, ny = e.container.y;
-    // Stop infinite tween before destroy — prevents TweenManager accumulation freeze
+    const type = e.type;
+    const coins = e.coins;
+
+    // Remove from array FIRST so bomber explosion can't target itself
     this.tweens.killTweensOf(e.container.list[0] as Phaser.GameObjects.Image);
-    this.spawnParticles(nx, ny, 'particle_exp', e.type === 'BOMBER' ? 18 : 10);
-    if (e.type === 'BOMBER') this.bomberExplode(nx, ny);
-    e.container.destroy(); e.hpBar?.destroy(); e.hpBarBg?.destroy();
     this.enemies.splice(index, 1);
-    this.playerCoins += e.coins;
+
+    this.spawnParticles(nx, ny, 'particle_exp', type === 'BOMBER' ? 18 : 10);
+    if (type === 'BOMBER') this.bomberExplode(nx, ny);
+
+    e.container.destroy(); e.hpBar?.destroy(); e.hpBarBg?.destroy();
+
+    this.playerCoins += coins;
     this.enemiesKilled++;
-    // Track mission progress
     this.missionKillCount++;
-    if (e.type === 'HEAVY')  this.missionHeavyCount++;
-    if (e.type === 'BOMBER') this.missionBomberCount++;
-    const txt = this.add.text(nx, ny, `+${e.coins}`, {
-      fontSize: '16px', color: '#FFD700', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3,
+    if (type === 'HEAVY')  this.missionHeavyCount++;
+    if (type === 'BOMBER') this.missionBomberCount++;
+
+    // Simple text — no stroke to avoid per-frame canvas cost
+    const txt = this.add.text(nx, ny, `+${coins}`, {
+      fontSize: '15px', color: '#FFD700', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(15);
-    this.tweens.add({ targets: txt, y: ny - 60, alpha: 0, duration: 900, onComplete: () => txt.destroy() });
+    this.tweens.add({ targets: txt, y: ny - 55, alpha: 0, duration: 800,
+      onComplete: () => txt.destroy() });
   }
 
   private bomberExplode(x: number, y: number) {
