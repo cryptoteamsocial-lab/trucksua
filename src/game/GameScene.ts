@@ -182,154 +182,120 @@ export default class GameScene extends Phaser.Scene {
 
     const data = loadData();
     const dailyReward = claimDailyReward();
+    const veh = VEHICLES.find(v => v.id === data.selectedVehicle) ?? VEHICLES[0];
 
-    const bg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x050510, 0.90).setDepth(20);
+    const bg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x050510, 0.92).setDepth(20);
+    const cx = CONFIG.WIDTH / 2;
 
-    // ── Title ─────────────────────────────────────────────────────────────────
-    const title = this.add.text(CONFIG.WIDTH / 2, 46, 'БАВОВНА ROAD', {
-      fontSize: '36px', color: '#FFD700', fontFamily: 'monospace', stroke: '#0a0a0a', strokeThickness: 7,
+    // ── Title ──────────────────────────────────────────────────────────────────
+    const title = this.add.text(cx, 42, 'БАВОВНА ROAD', {
+      fontSize: '34px', color: '#FFD700', fontFamily: 'monospace', stroke: '#0a0a0a', strokeThickness: 7,
     }).setOrigin(0.5).setDepth(21);
 
-    const sub = this.add.text(CONFIG.WIDTH / 2, 84, 'Грай. Допомагай. Перемагай.', {
+    const sub = this.add.text(cx, 78, 'Грай. Допомагай. Перемагай.', {
       fontSize: '13px', color: '#88ccff', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(21);
 
-    const flagB = this.add.rectangle(CONFIG.WIDTH / 2, 104, CONFIG.WIDTH - 40, 6, 0x005bbb).setDepth(21);
-    const flagY = this.add.rectangle(CONFIG.WIDTH / 2, 110, CONFIG.WIDTH - 40, 6, 0xffd700).setDepth(21);
+    const flagB = this.add.rectangle(cx, 96, CONFIG.WIDTH - 20, 5, 0x005bbb).setDepth(21);
+    const flagY = this.add.rectangle(cx, 101, CONFIG.WIDTH - 20, 5, 0xffd700).setDepth(21);
 
-    // ── Charity block ─────────────────────────────────────────────────────────
-    const charityBg = this.add.rectangle(CONFIG.WIDTH / 2, 230, CONFIG.WIDTH - 24, 230, 0x0a1520, 0.96)
-      .setStrokeStyle(2, 0x1a3a5a).setDepth(21);
+    // ── Active vehicle card ────────────────────────────────────────────────────
+    const cardBg = this.add.rectangle(cx, 270, CONFIG.WIDTH - 20, 300, 0x0a1520)
+      .setStrokeStyle(2, veh.color).setDepth(21);
 
-    this.add.text(CONFIG.WIDTH / 2, 130, 'АКТИВНИЙ ЗБІР', {
-      fontSize: '13px', color: '#556677', fontFamily: 'monospace',
+    this.add.text(cx, 122, 'ТВОЄ АВТО', {
+      fontSize: '11px', color: '#445566', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(22);
 
-    this.add.text(CONFIG.WIDTH / 2, 154, CHARITY.title, {
-      fontSize: '17px', color: '#ffffff', fontFamily: 'monospace', align: 'center',
+    // Vehicle sprite (animated)
+    const demo = this.add.image(90, 220, veh.textureKey).setScale(2.0).setDepth(22);
+    this.tweens.add({ targets: demo, y: 228, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+
+    // Vehicle info
+    this.add.text(cx + 20, 152, `🚗 ${veh.label.toUpperCase()}`, {
+      fontSize: '20px', color: '#ffffff', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(22);
 
-    this.add.text(CONFIG.WIDTH / 2, 176, CHARITY.unit, {
-      fontSize: '11px', color: '#445566', fontFamily: 'monospace', align: 'center',
+    this.add.text(cx + 20, 182, veh.description, {
+      fontSize: '12px', color: '#667788', fontFamily: 'monospace', align: 'center',
     }).setOrigin(0.5).setDepth(22);
 
-    // Progress
-    const pct = CHARITY.raised / CHARITY.goal;
-    const barW = CONFIG.WIDTH - 70;
-    const barX = 35;
-    this.add.rectangle(CONFIG.WIDTH / 2, 202, barW, 14, 0x111a28).setDepth(22);
-    this.add.rectangle(barX + (barW * pct) / 2, 202, barW * pct, 14, 0x005bbb).setDepth(22).setOrigin(0.5);
-    this.add.text(CONFIG.WIDTH / 2, 202,
-      `${Math.round(pct * 100)}%  —  ${CHARITY.raised.toLocaleString()} / ${CHARITY.goal.toLocaleString()} ⭐`,
-      { fontSize: '12px', color: '#88ccff', fontFamily: 'monospace' }
+    this.add.text(cx + 20, 218, `HP:${veh.baseHp}  Шв:${veh.baseSpeed}  Стр:${veh.baseFireRate}мс`, {
+      fontSize: '11px', color: '#44aa66', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(22);
+
+    // Collection progress for active vehicle
+    const pct = veh.collectionRaised / veh.collectionGoal;
+    const barW = CONFIG.WIDTH - 60;
+    const barX = 30;
+    this.add.text(cx, 248, 'ПРОГРЕС ЗБОРУ', { fontSize: '10px', color: '#445566', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
+    this.add.rectangle(cx, 266, barW, 12, 0x0a1228).setDepth(22);
+    if (pct > 0) {
+      this.add.rectangle(barX + (barW * pct) / 2, 266, barW * pct, 12, 0x005bbb).setOrigin(0.5).setDepth(22);
+    }
+    this.add.text(cx, 266,
+      `${Math.round(pct * 100)}%  ${veh.collectionRaised.toLocaleString()} / ${veh.collectionGoal.toLocaleString()} ⭐`,
+      { fontSize: '11px', color: '#88aacc', fontFamily: 'monospace' }
     ).setOrigin(0.5).setDepth(23);
 
-    // Vehicle image placeholder
-    const vehKey = data.selectedVehicle ? VEHICLES.find(v => v.id === data.selectedVehicle)?.textureKey ?? 'player' : 'player';
-    const demo = this.add.image(120, 255, vehKey).setScale(1.8).setDepth(22);
-    this.tweens.add({ targets: demo, y: 263, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-
-    this.add.text(240, 242, CHARITY.vehicle, {
-      fontSize: '14px', color: '#aaccdd', fontFamily: 'monospace',
-    }).setOrigin(0.5).setDepth(22);
-
-    this.add.text(240, 266, CHARITY.description, {
-      fontSize: '11px', color: '#445566', fontFamily: 'monospace', align: 'center',
-    }).setOrigin(0.5).setDepth(22);
-
-    // ── Action buttons ─────────────────────────────────────────────────────────
-    const donateBg = this.add.rectangle(CONFIG.WIDTH / 2, 332, CONFIG.WIDTH - 60, 48, 0x0a1a2e).setDepth(21)
+    // Donate button
+    const donateBg = this.add.rectangle(cx, 298, CONFIG.WIDTH - 60, 42, 0x0a1a2e).setDepth(21)
       .setStrokeStyle(2, 0x3377cc).setInteractive({ useHandCursor: true });
-    this.add.text(CONFIG.WIDTH / 2, 332, '💙 ДОПОМОГТИ ЗБОРУ', {
-      fontSize: '15px', color: '#88ccff', fontFamily: 'monospace',
-    }).setOrigin(0.5).setDepth(22);
-    donateBg.on('pointerdown', () => { const u = 'https://t.me/bavovnaroad'; window.open(u, '_blank'); });
+    this.add.text(cx, 298, '💙 ПІДТРИМАТИ ЗБІР', { fontSize: '14px', color: '#88ccff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
+    donateBg.on('pointerdown', () => window.open('https://t.me/bavovnaroad', '_blank'));
     donateBg.on('pointerover', () => donateBg.setFillStyle(0x143050));
     donateBg.on('pointerout',  () => donateBg.setFillStyle(0x0a1a2e));
 
-    const playBg = this.add.rectangle(CONFIG.WIDTH / 2, 396, CONFIG.WIDTH - 60, 62, 0x005bbb).setDepth(21)
+    // ── PLAY button ────────────────────────────────────────────────────────────
+    const playBg = this.add.rectangle(cx, 364, CONFIG.WIDTH - 40, 66, 0x005bbb).setDepth(21)
       .setStrokeStyle(3, 0xffd700).setInteractive({ useHandCursor: true });
-    const playT = this.add.text(CONFIG.WIDTH / 2, 396, '▶  ГРАТИ', {
-      fontSize: '28px', color: '#FFD700', fontFamily: 'monospace',
+    const playT = this.add.text(cx, 364, '▶  ГРАТИ', {
+      fontSize: '30px', color: '#FFD700', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(22);
     playBg.on('pointerdown', () => this.startGame());
     playBg.on('pointerover', () => playBg.setFillStyle(0x1177dd));
     playBg.on('pointerout',  () => playBg.setFillStyle(0x005bbb));
-    this.tweens.add({ targets: [playBg, playT], scaleX: 1.03, scaleY: 1.03, duration: 700, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: [playBg, playT], scaleX: 1.02, scaleY: 1.02, duration: 800, yoyo: true, repeat: -1 });
 
-    // ── Coins stat ─────────────────────────────────────────────────────────────
-    const statsBg = this.add.rectangle(CONFIG.WIDTH / 2, 462, CONFIG.WIDTH - 40, 44, 0x0a140a, 0.9).setDepth(21).setStrokeStyle(1, 0x1a3a1a);
-    const statsT = this.add.text(CONFIG.WIDTH / 2, 462,
-      `$ ${data.totalCoins}  |  Рекорд: ${data.bestScore}  |  Конвой: ${data.maxConvoy + 1}`,
+    // ── Stats bar ──────────────────────────────────────────────────────────────
+    const statsBg = this.add.rectangle(cx, 444, CONFIG.WIDTH - 20, 38, 0x0a140a).setDepth(21).setStrokeStyle(1, 0x1a3a1a);
+    const statsT  = this.add.text(cx, 444,
+      `💰 ${data.totalCoins}  |  🏆 ${data.bestScore}  |  🚗 ${data.maxConvoy + 1}`,
       { fontSize: '13px', color: '#aaffaa', fontFamily: 'monospace', align: 'center' }
     ).setOrigin(0.5).setDepth(22);
 
-    // ── Navigation buttons ─────────────────────────────────────────────────────
-    const btnY = 516;
-    const btnW = 106;
-    const btnGap = 8;
-    const btnStartX = CONFIG.WIDTH / 2 - btnW - btnGap;
+    // ── Navigation 3×2 grid ────────────────────────────────────────────────────
+    const navW = (CONFIG.WIDTH - 28) / 3, navH = 44, navGap = 6;
+    const row1Y = 490, row2Y = 540;
 
-    const navDefs = [
-      { label: 'ГАРАЖ',  color: 0x0d2200, border: 0x44aa00, textCol: '#88ff44', x: btnStartX, cb: () => { this.clearMenu(); this.scene.start('GarageScene'); } },
-      { label: 'МІСІЇ',  color: 0x1a0a22, border: 0x773399, textCol: '#cc88ff', x: CONFIG.WIDTH / 2, cb: () => { this.clearMenu(); this.scene.start('MissionsScene'); } },
-      { label: 'СЛАВА',  color: 0x0a0a22, border: 0x3333aa, textCol: '#6666ff', x: btnStartX + (btnW + btnGap) * 2, cb: () => { this.clearMenu(); this.scene.start('HallOfFameScene'); } },
+    const allNavDefs = [
+      { label: 'ГАРАЖ',    col: 0x0d2200, border: 0x44aa00, txt: '#88ff44',  row: row1Y, i: 0, cb: () => { this.clearMenu(); this.scene.start('GarageScene'); } },
+      { label: 'МІСІЇ',    col: 0x1a0a22, border: 0x773399, txt: '#cc88ff',  row: row1Y, i: 1, cb: () => { this.clearMenu(); this.scene.start('MissionsScene'); } },
+      { label: 'СЛАВА',    col: 0x0a0a22, border: 0x3333aa, txt: '#6666ff',  row: row1Y, i: 2, cb: () => { this.clearMenu(); this.scene.start('HallOfFameScene'); } },
+      { label: '🛍 МЕРЧ',  col: 0x1a1000, border: 0x775500, txt: '#ccaa44',  row: row2Y, i: 0, cb: () => { this.clearMenu(); this.scene.start('MerchScene'); } },
+      { label: '🚗 ЗБОРИ', col: 0x0a1520, border: 0x3377cc, txt: '#88ccff',  row: row2Y, i: 1, cb: () => { this.clearMenu(); this.scene.start('CollectionsScene'); } },
+      { label: '❓ ДОВІДКА', col: 0x111111, border: 0x444444, txt: '#888888', row: row2Y, i: 2, cb: () => { this.clearMenu(); this.scene.start('HelpScene'); } },
     ];
 
     const navObjs: Phaser.GameObjects.GameObject[] = [];
-    navDefs.forEach(n => {
-      const b = this.add.rectangle(n.x, btnY, btnW, 46, n.color).setDepth(21)
+    allNavDefs.forEach(n => {
+      const x = 10 + n.i * (navW + navGap) + navW / 2;
+      const b = this.add.rectangle(x, n.row, navW, navH, n.col).setDepth(21)
         .setStrokeStyle(2, n.border).setInteractive({ useHandCursor: true });
-      const t = this.add.text(n.x, btnY, n.label, { fontSize: '13px', color: n.textCol, fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
+      const t = this.add.text(x, n.row, n.label, { fontSize: '12px', color: n.txt, fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
       b.on('pointerdown', n.cb);
       b.on('pointerover', () => b.setAlpha(0.8));
       b.on('pointerout',  () => b.setAlpha(1));
       navObjs.push(b, t);
     });
 
-    // Bottom row: Merch + Help + Collections
-    const row2Y = 578;
-    const row2W = 110, row2Gap = 8;
-    const row2StartX = CONFIG.WIDTH / 2 - row2W - row2Gap;
-
-    const row2Defs = [
-      { label: '🛍 МЕРЧ',  color: 0x1a1000, border: 0x775500, textCol: '#ccaa44', x: row2StartX, cb: () => { this.clearMenu(); this.scene.start('MerchScene'); } },
-      { label: '🚗 ЗБОРИ', color: 0x0a1520, border: 0x3377cc, textCol: '#88ccff', x: CONFIG.WIDTH / 2, cb: () => { this.clearMenu(); this.scene.start('CollectionsScene'); } },
-      { label: '❓ ДОВІДКА', color: 0x111111, border: 0x444444, textCol: '#888888', x: row2StartX + (row2W + row2Gap) * 2, cb: () => { this.clearMenu(); this.scene.start('HelpScene'); } },
-    ];
-
-    const row2Objs: Phaser.GameObjects.GameObject[] = [];
-    row2Defs.forEach(n => {
-      const b = this.add.rectangle(n.x, row2Y, row2W, 42, n.color).setDepth(21).setStrokeStyle(2, n.border).setInteractive({ useHandCursor: true });
-      const t = this.add.text(n.x, row2Y, n.label, { fontSize: '12px', color: n.textCol, fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
-      b.on('pointerdown', n.cb);
-      b.on('pointerover', () => b.setAlpha(0.8));
-      b.on('pointerout',  () => b.setAlpha(1));
-      row2Objs.push(b, t);
-    });
-    const merchBg = row2Objs[0], merchT = row2Objs[1]; // keep refs for menuObjects array
-
-    // Last donated cars
-    this.add.rectangle(CONFIG.WIDTH / 2, 624, CONFIG.WIDTH - 24, 1, 0x1a2a3a).setDepth(21);
-    this.add.text(CONFIG.WIDTH / 2, 638, 'ОСТАННІ ПЕРЕДАНІ АВТО', { fontSize: '11px', color: '#334455', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
-
-    const histObjs: Phaser.GameObjects.GameObject[] = [];
-    CHARITY.history.forEach((h, i) => {
-      const hy = 662 + i * 44;
-      const hbg = this.add.rectangle(CONFIG.WIDTH / 2, hy, CONFIG.WIDTH - 30, 38, 0x080e18).setDepth(21).setStrokeStyle(1, 0x1a2a3a);
-      const ht = this.add.text(30, hy, `🚙 ${h.name}`, { fontSize: '12px', color: '#aaccdd', fontFamily: 'monospace' }).setOrigin(0, 0.5).setDepth(22);
-      const hd = this.add.text(CONFIG.WIDTH - 18, hy, `${h.date}  ${h.unit}`, { fontSize: '11px', color: '#334455', fontFamily: 'monospace' }).setOrigin(1, 0.5).setDepth(22);
-      histObjs.push(hbg, ht, hd);
-    });
-
-    const ver = this.add.text(CONFIG.WIDTH / 2, 810, 'Бавовна Road  v2.0', {
-      fontSize: '11px', color: '#1a2233', fontFamily: 'monospace',
+    const ver = this.add.text(cx, CONFIG.HEIGHT - 22, 'Бавовна Road  v2.0', {
+      fontSize: '10px', color: '#1a2233', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(22);
 
     this.menuObjects = [
-      bg, title, sub, flagB, flagY, charityBg, donateBg, playBg, playT,
-      statsBg, statsT, demo,
-      ...navObjs, ...row2Objs, ...histObjs, ver,
+      bg, title, sub, flagB, flagY, cardBg, donateBg, playBg, playT,
+      demo, statsBg, statsT, ...navObjs, ver,
     ];
 
     if (dailyReward !== null) {

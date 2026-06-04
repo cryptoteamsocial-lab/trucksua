@@ -117,17 +117,29 @@ export default class HelpScene extends Phaser.Scene {
   }
 
   private buildWeapons(y: number) {
+    // Upgrade description
+    this.contentGroup.push(
+      this.add.rectangle(CONFIG.WIDTH / 2, y + 28, CONFIG.WIDTH - 24, 52, 0x0a1420).setStrokeStyle(1, 0x1a3355)
+    );
+    this.contentGroup.push(
+      this.add.text(CONFIG.WIDTH / 2, y + 28,
+        '💡 Зброя покращується в Гаражі за монети.\nКожен рівень підвищує швидкість та силу атаки.',
+        { fontSize: '11px', color: '#6688aa', fontFamily: 'monospace', align: 'center', lineSpacing: 3 }
+      ).setOrigin(0.5)
+    );
+    y += 62;
+
     WEAPON_LEVELS.forEach((w, i) => {
       this.contentGroup.push(
-        this.add.rectangle(CONFIG.WIDTH / 2, y + 24, CONFIG.WIDTH - 24, 44, i % 2 === 0 ? 0x0a1018 : 0x080c12).setStrokeStyle(1, 0x1a2233)
+        this.add.rectangle(CONFIG.WIDTH / 2, y + 22, CONFIG.WIDTH - 24, 42, i % 2 === 0 ? 0x0a1018 : 0x080c12).setStrokeStyle(1, 0x1a2233)
       );
       this.contentGroup.push(
-        this.add.text(24, y + 14, `Рів ${i + 1}`, { fontSize: '11px', color: '#445566', fontFamily: 'monospace' }).setOrigin(0, 0.5)
+        this.add.text(24, y + 12, `Рів ${i + 1}`, { fontSize: '11px', color: '#445566', fontFamily: 'monospace' }).setOrigin(0, 0.5)
       );
       this.contentGroup.push(
-        this.add.text(CONFIG.WIDTH / 2, y + 14, w.icon + ' ' + w.name, { fontSize: '13px', color: '#aaccdd', fontFamily: 'monospace' }).setOrigin(0.5)
+        this.add.text(CONFIG.WIDTH / 2, y + 12, w.icon + ' ' + w.name, { fontSize: '13px', color: '#aaccdd', fontFamily: 'monospace' }).setOrigin(0.5)
       );
-      y += 48;
+      y += 46;
     });
   }
 

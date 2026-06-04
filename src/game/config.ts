@@ -148,8 +148,8 @@ export interface VehicleDef {
 export const VEHICLES: VehicleDef[] = [
   {
     id: 'humvee',
-    label: 'Хамві',
-    description: 'Збалансований. Хороший\nзагальновійськовий пікап.',
+    label: 'Козак',
+    description: 'Збалансований стартовий\nавтомобіль для прориву.',
     starsPrice: 0,
     coinPrice: 0,
     textureKey: 'player',
@@ -163,7 +163,7 @@ export const VEHICLES: VehicleDef[] = [
   },
   {
     id: 'scout',
-    label: 'Козак',
+    label: 'Пікап',
     description: 'Швидкий та маневрений.\nШвидка черга. Мало HP.',
     starsPrice: 500,
     coinPrice: 0,
@@ -178,7 +178,7 @@ export const VEHICLES: VehicleDef[] = [
   },
   {
     id: 'apc',
-    label: 'Пікап',
+    label: 'БТР',
     description: 'Важка броня. Потрійний\nрозсіяний постріл. Повільний.',
     starsPrice: 1000,
     coinPrice: 0,

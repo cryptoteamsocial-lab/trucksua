@@ -85,12 +85,14 @@ export default class GarageScene extends Phaser.Scene {
   private renderTab() {
     this.contentObjects.forEach(o => o.destroy());
     this.contentObjects = [];
+    this.cameras.main.scrollY = 0;
     if (this.currentTab === 'upgrades') this.buildUpgradesTab();
     else this.buildVehiclesTab();
   }
 
   // ─── Upgrades tab ──────────────────────────────────────────────────────────
   private buildUpgradesTab() {
+    this.cameras.main.setBounds(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
     UPGRADES.forEach((upg, i) => {
       const col = i % 2, row = Math.floor(i / 2);
       const x = GRID_X + col * (CARD_W + CARD_GAP);
@@ -180,6 +182,8 @@ export default class GarageScene extends Phaser.Scene {
   // ─── Vehicles tab ──────────────────────────────────────────────────────────
   private buildVehiclesTab() {
     const data = loadData();
+    const totalH = GRID_Y + VEHICLES.length * 210 + 80;
+    this.cameras.main.setBounds(0, 0, CONFIG.WIDTH, Math.max(totalH, CONFIG.HEIGHT));
     VEHICLES.forEach((veh, i) => {
       const y = GRID_Y + i * 210;
       this.contentObjects.push(...this.buildVehicleCard(veh, y, data.ownedVehicles, data.selectedVehicle));
@@ -276,13 +280,20 @@ export default class GarageScene extends Phaser.Scene {
 
   private createBackButton() {
     const btnBg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 44, 200, 48, 0x111111)
-      .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true });
+      .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true }).setScrollFactor(0);
     this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 44, '< До меню', {
       fontSize: '16px', color: '#888', fontFamily: 'monospace',
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setScrollFactor(0);
     btnBg.on('pointerdown', () => this.scene.start('GameScene'));
     btnBg.on('pointerover', () => btnBg.setFillStyle(0x222222));
     btnBg.on('pointerout',  () => btnBg.setFillStyle(0x111111));
     this.input.keyboard!.on('keydown-ESC', () => this.scene.start('GameScene'));
+
+    // Touch scroll for vehicles tab
+    this.input.on('pointermove', (ptr: Phaser.Input.Pointer) => {
+      if (ptr.isDown) {
+        this.cameras.main.scrollY -= ptr.velocity.y * 0.016;
+      }
+    });
   }
 }
