@@ -328,6 +328,7 @@ export default class GameScene extends Phaser.Scene {
     this.clearMenu();
     this.clearOverlay();
     this.tweens.killAll();
+    this.time.removeAllEvents(); // clear pending delayedCall accumulation
 
     // Load vehicle + upgrade stats
     const data = loadData();
@@ -366,9 +367,15 @@ export default class GameScene extends Phaser.Scene {
     this.allyBonusInterval = Phaser.Math.Between(CONFIG.ALLY_BONUS_INTERVAL_MIN, CONFIG.ALLY_BONUS_INTERVAL_MAX);
 
     this.bullets.forEach(b => b.sprite.destroy());
-    this.enemies.forEach(e => { e.container.destroy(); e.hpBar?.destroy(); e.hpBarBg?.destroy(); });
+    this.enemies.forEach(e => {
+      this.tweens.killTweensOf(e.container.list[0] as Phaser.GameObjects.Image);
+      e.container.destroy(); e.hpBar?.destroy(); e.hpBarBg?.destroy();
+    });
     this.obstacles.forEach(o => o.sprite.destroy());
-    this.allyBonuses.forEach(a => a.container.destroy());
+    this.allyBonuses.forEach(a => {
+      this.tweens.killTweensOf(a.container.list[0] as Phaser.GameObjects.Image);
+      a.container.destroy();
+    });
     this.allies.forEach(a => a.container.destroy());
     this.particles.forEach(p => p.sprite.destroy());
     this.bullets = []; this.enemies = []; this.obstacles = [];
@@ -536,6 +543,8 @@ export default class GameScene extends Phaser.Scene {
   private killEnemy(index: number) {
     const e = this.enemies[index];
     const nx = e.container.x, ny = e.container.y;
+    // Stop infinite tween before destroy — prevents TweenManager accumulation freeze
+    this.tweens.killTweensOf(e.container.list[0] as Phaser.GameObjects.Image);
     this.spawnParticles(nx, ny, 'particle_exp', e.type === 'BOMBER' ? 18 : 10);
     if (e.type === 'BOMBER') this.bomberExplode(nx, ny);
     e.container.destroy(); e.hpBar?.destroy(); e.hpBarBg?.destroy();
@@ -585,6 +594,7 @@ export default class GameScene extends Phaser.Scene {
 
       if (e.hpBar) this.refreshHpBar(e);
       if (e.container.y > CONFIG.HEIGHT + 80) {
+        this.tweens.killTweensOf(e.container.list[0] as Phaser.GameObjects.Image);
         e.container.destroy(); e.hpBar?.destroy(); e.hpBarBg?.destroy();
         this.enemies.splice(i, 1); continue;
       }
@@ -652,8 +662,12 @@ export default class GameScene extends Phaser.Scene {
     for (let i = this.allyBonuses.length - 1; i >= 0; i--) {
       const a = this.allyBonuses[i];
       a.container.y += 130 * dt;
-      if (a.container.y > CONFIG.HEIGHT + 50) { a.container.destroy(); this.allyBonuses.splice(i, 1); continue; }
+      if (a.container.y > CONFIG.HEIGHT + 50) {
+        this.tweens.killTweensOf(a.container.list[0] as Phaser.GameObjects.Image);
+        a.container.destroy(); this.allyBonuses.splice(i, 1); continue;
+      }
       if (this.ov2(a.container.x, a.container.y, 36, 42, this.playerX, this.playerY, CONFIG.PLAYER_W + 24, CONFIG.PLAYER_H + 24)) {
+        this.tweens.killTweensOf(a.container.list[0] as Phaser.GameObjects.Image);
         if (a.type === 'ally') this.pickupAlly(a.container.x, a.container.y);
         else this.pickupRepair(a.container.x, a.container.y);
         a.container.destroy(); this.allyBonuses.splice(i, 1);
