@@ -1,67 +1,109 @@
 import Phaser from 'phaser';
-import { CONFIG, UPGRADES, getStatFromUpgrade } from './config';
-import { loadData, upgradeLevel, getUpgradeCost } from './storage';
-import type { UpgradeId } from './types';
+import { CONFIG, UPGRADES, VEHICLES, getStatFromUpgrade } from './config';
+import { loadData, upgradeLevel, getUpgradeCost, buyVehicle, selectVehicle } from './storage';
+import { createPixelTextures } from './PixelArt';
+import type { UpgradeId, VehicleId } from './types';
 
-const CARD_W = 168;
-const CARD_H = 170;
-const CARD_GAP = 10;
+type Tab = 'upgrades' | 'vehicles';
+
+const CARD_W = 168, CARD_H = 170, CARD_GAP = 10;
 const GRID_X = CONFIG.WIDTH / 2 - CARD_W - CARD_GAP / 2;
-const GRID_Y = 200;
+const GRID_Y = 190;
 
 export default class GarageScene extends Phaser.Scene {
+  private currentTab: Tab = 'upgrades';
   private coinsText!: Phaser.GameObjects.Text;
-  private cards: Phaser.GameObjects.Container[] = [];
+  private contentObjects: Phaser.GameObjects.GameObject[] = [];
+  private tabBtnUpgrades!: Phaser.GameObjects.Rectangle;
+  private tabBtnVehicles!: Phaser.GameObjects.Rectangle;
+  private tabTxtUpgrades!: Phaser.GameObjects.Text;
+  private tabTxtVehicles!: Phaser.GameObjects.Text;
 
-  constructor() {
-    super({ key: 'GarageScene' });
-  }
+  constructor() { super({ key: 'GarageScene' }); }
 
   create() {
+    // Need pixel textures for vehicle previews
+    if (!this.textures.exists('vehicle_scout')) createPixelTextures(this);
+
     this.createBackground();
     this.createHeader();
-    this.createUpgradeCards();
-    this.createStatsPanel();
+    this.createTabs();
+    this.renderTab();
     this.createBackButton();
   }
 
   private createBackground() {
     this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x080c14);
-    // top stripe
     this.add.rectangle(CONFIG.WIDTH / 2, 0, CONFIG.WIDTH, 4, 0x005bbb);
     this.add.rectangle(CONFIG.WIDTH / 2, 4, CONFIG.WIDTH, 4, 0xffd700);
   }
 
   private createHeader() {
-    this.add.text(CONFIG.WIDTH / 2, 44, 'GARAGE', {
-      fontSize: '34px', color: '#FFD700', fontFamily: 'monospace',
-      stroke: '#000', strokeThickness: 5,
-    }).setOrigin(0.5);
-
-    this.add.text(CONFIG.WIDTH / 2, 84, 'Upgrade your convoy', {
-      fontSize: '14px', color: '#888888', fontFamily: 'monospace',
+    this.add.text(CONFIG.WIDTH / 2, 38, 'GARAGE', {
+      fontSize: '32px', color: '#FFD700', fontFamily: 'monospace', stroke: '#000', strokeThickness: 5,
     }).setOrigin(0.5);
 
     const data = loadData();
-    this.coinsText = this.add.text(CONFIG.WIDTH / 2, 114, `$ ${data.totalCoins}`, {
-      fontSize: '20px', color: '#ffd700', fontFamily: 'monospace',
-      stroke: '#000', strokeThickness: 3,
+    this.coinsText = this.add.text(CONFIG.WIDTH / 2, 76, `$ ${data.totalCoins}`, {
+      fontSize: '19px', color: '#ffd700', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3,
     }).setOrigin(0.5);
   }
 
-  private createUpgradeCards() {
-    this.cards = [];
-    UPGRADES.forEach((upg, i) => {
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const x = GRID_X + col * (CARD_W + CARD_GAP);
-      const y = GRID_Y + row * (CARD_H + CARD_GAP);
-      const card = this.buildCard(upg.id, x, y);
-      this.cards.push(card);
-    });
+  private createTabs() {
+    const tabY = 118;
+    this.tabBtnUpgrades = this.add.rectangle(CONFIG.WIDTH / 2 - 80, tabY, 144, 38, 0x1a3300)
+      .setStrokeStyle(2, 0x44aa00).setInteractive({ useHandCursor: true });
+    this.tabTxtUpgrades = this.add.text(CONFIG.WIDTH / 2 - 80, tabY, 'UPGRADES', {
+      fontSize: '14px', color: '#88ff44', fontFamily: 'monospace',
+    }).setOrigin(0.5);
+
+    this.tabBtnVehicles = this.add.rectangle(CONFIG.WIDTH / 2 + 80, tabY, 144, 38, 0x111111)
+      .setStrokeStyle(2, 0x333333).setInteractive({ useHandCursor: true });
+    this.tabTxtVehicles = this.add.text(CONFIG.WIDTH / 2 + 80, tabY, 'VEHICLES', {
+      fontSize: '14px', color: '#555555', fontFamily: 'monospace',
+    }).setOrigin(0.5);
+
+    this.tabBtnUpgrades.on('pointerdown', () => this.switchTab('upgrades'));
+    this.tabBtnVehicles.on('pointerdown', () => this.switchTab('vehicles'));
   }
 
-  private buildCard(id: UpgradeId, x: number, y: number): Phaser.GameObjects.Container {
+  private switchTab(tab: Tab) {
+    this.currentTab = tab;
+    // Update tab visuals
+    if (tab === 'upgrades') {
+      this.tabBtnUpgrades.setFillStyle(0x1a3300).setStrokeStyle(2, 0x44aa00);
+      this.tabTxtUpgrades.setColor('#88ff44');
+      this.tabBtnVehicles.setFillStyle(0x111111).setStrokeStyle(2, 0x333333);
+      this.tabTxtVehicles.setColor('#555555');
+    } else {
+      this.tabBtnVehicles.setFillStyle(0x0a1a2e).setStrokeStyle(2, 0x3377cc);
+      this.tabTxtVehicles.setColor('#88ccff');
+      this.tabBtnUpgrades.setFillStyle(0x111111).setStrokeStyle(2, 0x333333);
+      this.tabTxtUpgrades.setColor('#555555');
+    }
+    this.renderTab();
+  }
+
+  private renderTab() {
+    this.contentObjects.forEach(o => o.destroy());
+    this.contentObjects = [];
+    if (this.currentTab === 'upgrades') this.buildUpgradesTab();
+    else this.buildVehiclesTab();
+  }
+
+  // ─── Upgrades tab ──────────────────────────────────────────────────────────
+  private buildUpgradesTab() {
+    UPGRADES.forEach((upg, i) => {
+      const col = i % 2, row = Math.floor(i / 2);
+      const x = GRID_X + col * (CARD_W + CARD_GAP);
+      const y = GRID_Y + row * (CARD_H + CARD_GAP);
+      this.contentObjects.push(this.buildUpgradeCard(upg.id, x, y));
+    });
+    this.contentObjects.push(...this.buildStatsPanel());
+    this.refreshCoins();
+  }
+
+  private buildUpgradeCard(id: UpgradeId, x: number, y: number): Phaser.GameObjects.Container {
     const data = loadData();
     const level = data.upgrades[id];
     const upg = UPGRADES.find(u => u.id === id)!;
@@ -69,144 +111,156 @@ export default class GarageScene extends Phaser.Scene {
     const cost = maxed ? 0 : getUpgradeCost(id, level);
     const canAfford = !maxed && data.totalCoins >= cost;
 
-    const container = this.add.container(x + CARD_W / 2, y + CARD_H / 2);
-
-    // Card background
+    const c = this.add.container(x + CARD_W / 2, y + CARD_H / 2);
     const bg = this.add.rectangle(0, 0, CARD_W, CARD_H, 0x101820)
       .setStrokeStyle(2, maxed ? 0xffd700 : canAfford ? 0x335533 : 0x222222);
-    container.add(bg);
+    c.add(bg);
+    c.add(this.add.text(0, -56, upg.icon, { fontSize: '22px', color: maxed ? '#ffd700' : '#88ccff', fontFamily: 'monospace' }).setOrigin(0.5));
+    c.add(this.add.text(0, -32, upg.label.toUpperCase(), { fontSize: '14px', color: '#fff', fontFamily: 'monospace' }).setOrigin(0.5));
 
-    // Icon
-    const icon = this.add.text(0, -56, upg.icon, {
-      fontSize: '22px', color: maxed ? '#ffd700' : '#88ccff', fontFamily: 'monospace',
-    }).setOrigin(0.5);
-    container.add(icon);
-
-    // Label
-    const label = this.add.text(0, -30, upg.label.toUpperCase(), {
-      fontSize: '14px', color: '#ffffff', fontFamily: 'monospace',
-    }).setOrigin(0.5);
-    container.add(label);
-
-    // Stars (level indicator)
-    const starsY = -8;
     for (let s = 0; s < 5; s++) {
-      const starX = -40 + s * 20;
-      const filled = s < level;
-      const star = this.add.text(starX, starsY, filled ? '★' : '☆', {
-        fontSize: '14px', color: filled ? '#ffd700' : '#333333', fontFamily: 'monospace',
-      }).setOrigin(0.5);
-      container.add(star);
+      c.add(this.add.text(-40 + s * 20, -8, s < level ? '★' : '☆', {
+        fontSize: '14px', color: s < level ? '#ffd700' : '#333', fontFamily: 'monospace',
+      }).setOrigin(0.5));
     }
+    c.add(this.add.text(0, 16, upg.description, { fontSize: '11px', color: '#666', fontFamily: 'monospace', align: 'center' }).setOrigin(0.5));
+    c.add(this.add.text(0, 34, level > 0 ? `+${getStatFromUpgrade(id, level)}` : 'base', { fontSize: '13px', color: '#44cc44', fontFamily: 'monospace' }).setOrigin(0.5));
 
-    // Description
-    const desc = this.add.text(0, 18, upg.description, {
-      fontSize: '11px', color: '#666666', fontFamily: 'monospace', align: 'center',
-    }).setOrigin(0.5);
-    container.add(desc);
-
-    // Bonus value
-    const bonus = level > 0 ? `+${getStatFromUpgrade(id, level)}` : 'base';
-    const bonusTxt = this.add.text(0, 36, bonus, {
-      fontSize: '13px', color: '#44cc44', fontFamily: 'monospace',
-    }).setOrigin(0.5);
-    container.add(bonusTxt);
-
-    // Button
     if (maxed) {
-      const maxBg = this.add.rectangle(0, 62, CARD_W - 20, 34, 0x1a2200)
-        .setStrokeStyle(2, 0xffd700);
-      const maxT = this.add.text(0, 62, 'MAX', {
-        fontSize: '16px', color: '#ffd700', fontFamily: 'monospace',
-      }).setOrigin(0.5);
-      container.add([maxBg, maxT]);
+      c.add(this.add.rectangle(0, 62, CARD_W - 20, 34, 0x1a2200).setStrokeStyle(2, 0xffd700));
+      c.add(this.add.text(0, 62, 'MAX', { fontSize: '16px', color: '#ffd700', fontFamily: 'monospace' }).setOrigin(0.5));
     } else {
-      const btnColor = canAfford ? 0x1a4400 : 0x1a1a1a;
-      const btnBorder = canAfford ? 0x44aa00 : 0x333333;
-      const btnTxtColor = canAfford ? '#88ff44' : '#444444';
-
-      const btnBg = this.add.rectangle(0, 62, CARD_W - 20, 34, btnColor)
-        .setStrokeStyle(2, btnBorder);
-      const btnT = this.add.text(0, 62, `$ ${cost}`, {
-        fontSize: '15px', color: btnTxtColor, fontFamily: 'monospace',
-      }).setOrigin(0.5);
-      container.add([btnBg, btnT]);
-
+      const btnBg = this.add.rectangle(0, 62, CARD_W - 20, 34, canAfford ? 0x1a4400 : 0x1a1a1a)
+        .setStrokeStyle(2, canAfford ? 0x44aa00 : 0x333333);
+      c.add(btnBg);
+      c.add(this.add.text(0, 62, `$ ${cost}`, { fontSize: '15px', color: canAfford ? '#88ff44' : '#444', fontFamily: 'monospace' }).setOrigin(0.5));
       if (canAfford) {
         btnBg.setInteractive({ useHandCursor: true });
-        btnBg.on('pointerdown', () => this.doUpgrade(id));
+        btnBg.on('pointerdown', () => { upgradeLevel(id); this.renderTab(); this.cameras.main.flash(160, 40, 180, 40, true); });
         btnBg.on('pointerover', () => btnBg.setFillStyle(0x2a6600));
-        btnBg.on('pointerout', () => btnBg.setFillStyle(btnColor));
+        btnBg.on('pointerout', () => btnBg.setFillStyle(0x1a4400));
       }
     }
-
-    return container;
+    return c;
   }
 
-  private doUpgrade(id: UpgradeId) {
-    const ok = upgradeLevel(id);
-    if (!ok) return;
-
-    // Rebuild all cards and stats
-    this.cards.forEach(c => c.destroy());
-    this.createUpgradeCards();
-    this.refreshStats();
-
+  private buildStatsPanel(): Phaser.GameObjects.GameObject[] {
     const data = loadData();
-    this.coinsText.setText(`$ ${data.totalCoins}`);
-
-    // Flash
-    this.cameras.main.flash(180, 50, 200, 50, true);
-  }
-
-  // ─── Stats panel ───────────────────────────────────────────────────────────
-  private statsPanel?: Phaser.GameObjects.Container;
-
-  private createStatsPanel() {
-    const data = loadData();
-    const upg = data.upgrades;
-
-    const speed = CONFIG.PLAYER_SPEED_X + getStatFromUpgrade('engine', upg.engine);
-    const hp = CONFIG.PLAYER_HP + getStatFromUpgrade('armor', upg.armor);
-    const fire = CONFIG.PLAYER_FIRE_RATE - getStatFromUpgrade('weapon', upg.weapon);
-    const dmg = 1 + getStatFromUpgrade('damage', upg.damage);
+    const u = data.upgrades;
+    const veh = VEHICLES.find(v => v.id === data.selectedVehicle) ?? VEHICLES[0];
+    const speed = veh.baseSpeed + getStatFromUpgrade('engine', u.engine);
+    const hp    = veh.baseHp   + getStatFromUpgrade('armor',  u.armor);
+    const fire  = veh.baseFireRate - getStatFromUpgrade('weapon', u.weapon);
+    const dmg   = 1 + getStatFromUpgrade('damage', u.damage);
 
     const y = GRID_Y + 2 * (CARD_H + CARD_GAP) + 20;
     const container = this.add.container(CONFIG.WIDTH / 2, y);
-
-    const bg = this.add.rectangle(0, 44, CONFIG.WIDTH - 30, 100, 0x0a1218)
-      .setStrokeStyle(1, 0x223322);
-    const title = this.add.text(0, 4, 'CURRENT STATS', {
-      fontSize: '13px', color: '#888888', fontFamily: 'monospace',
-    }).setOrigin(0.5);
-    const stats = this.add.text(0, 54,
-      `Speed: ${speed}   HP: ${hp}   Fire: ${fire}ms   Dmg: ${dmg}`,
+    const bg = this.add.rectangle(0, 44, CONFIG.WIDTH - 30, 92, 0x0a1218).setStrokeStyle(1, 0x223322);
+    const title = this.add.text(0, 6, `STATS  [${veh.label.toUpperCase()}]`, { fontSize: '12px', color: '#666', fontFamily: 'monospace' }).setOrigin(0.5);
+    const stats = this.add.text(0, 52,
+      `Spd: ${speed}   HP: ${hp}   Fire: ${fire}ms   Dmg: ${dmg}x`,
       { fontSize: '13px', color: '#aaffaa', fontFamily: 'monospace', align: 'center' }
     ).setOrigin(0.5);
-
     container.add([bg, title, stats]);
-    this.statsPanel = container;
+    return [container];
   }
 
-  private refreshStats() {
-    this.statsPanel?.destroy();
-    this.createStatsPanel();
+  // ─── Vehicles tab ──────────────────────────────────────────────────────────
+  private buildVehiclesTab() {
+    const data = loadData();
+
+    VEHICLES.forEach((veh, i) => {
+      const y = GRID_Y + i * 190;
+      this.contentObjects.push(...this.buildVehicleCard(veh, y, data.ownedVehicles, data.selectedVehicle));
+    });
+    this.refreshCoins();
   }
 
-  // ─── Back button ───────────────────────────────────────────────────────────
+  private buildVehicleCard(
+    veh: import('./config').VehicleDef,
+    y: number,
+    owned: VehicleId[],
+    selected: VehicleId
+  ): Phaser.GameObjects.GameObject[] {
+    const isOwned    = owned.includes(veh.id);
+    const isSelected = selected === veh.id;
+    const canAfford  = !isOwned && loadData().totalCoins >= veh.price;
+    const objects: Phaser.GameObjects.GameObject[] = [];
+
+    const cx = CONFIG.WIDTH / 2;
+    const cardBg = this.add.rectangle(cx, y + 82, CONFIG.WIDTH - 30, 172, 0x0d1520)
+      .setStrokeStyle(2, isSelected ? 0xffd700 : isOwned ? 0x335533 : 0x222222);
+    objects.push(cardBg);
+
+    // Vehicle preview sprite
+    const preview = this.add.image(cx - 120, y + 82, veh.textureKey).setScale(1.1);
+    objects.push(preview);
+
+    // Info
+    objects.push(this.add.text(cx - 40, y + 30, veh.label.toUpperCase(), {
+      fontSize: '18px', color: isSelected ? '#ffd700' : '#ffffff', fontFamily: 'monospace',
+    }).setOrigin(0, 0.5));
+
+    objects.push(this.add.text(cx - 40, y + 58, veh.description, {
+      fontSize: '12px', color: '#888', fontFamily: 'monospace', lineSpacing: 2,
+    }).setOrigin(0, 0.5));
+
+    objects.push(this.add.text(cx - 40, y + 98,
+      `Spd:${veh.baseSpeed}  HP:${veh.baseHp}  Fire:${veh.baseFireRate}ms`,
+      { fontSize: '12px', color: '#66aa66', fontFamily: 'monospace' }
+    ).setOrigin(0, 0.5));
+
+    const shotsLabel = veh.spreadShots > 1 ? `${veh.spreadShots}x SPREAD` : '1x SINGLE';
+    objects.push(this.add.text(cx - 40, y + 116, `Shot: ${shotsLabel}`, {
+      fontSize: '12px', color: '#aaddff', fontFamily: 'monospace',
+    }).setOrigin(0, 0.5));
+
+    // Action button
+    const btnY = y + 148;
+    if (isSelected) {
+      const selBg = this.add.rectangle(cx + 80, btnY, 120, 36, 0x1a3300).setStrokeStyle(2, 0xffd700);
+      objects.push(selBg);
+      objects.push(this.add.text(cx + 80, btnY, '✓ ACTIVE', { fontSize: '13px', color: '#ffd700', fontFamily: 'monospace' }).setOrigin(0.5));
+    } else if (isOwned) {
+      const selBg = this.add.rectangle(cx + 80, btnY, 120, 36, 0x113311).setStrokeStyle(2, 0x44aa00).setInteractive({ useHandCursor: true });
+      objects.push(selBg);
+      objects.push(this.add.text(cx + 80, btnY, 'SELECT', { fontSize: '14px', color: '#88ff44', fontFamily: 'monospace' }).setOrigin(0.5));
+      selBg.on('pointerdown', () => { selectVehicle(veh.id); this.renderTab(); });
+      selBg.on('pointerover', () => selBg.setFillStyle(0x1e4d1e));
+      selBg.on('pointerout', () => selBg.setFillStyle(0x113311));
+    } else {
+      const btnColor = canAfford ? 0x0a1a2e : 0x111111;
+      const btnBorder = canAfford ? 0x3377cc : 0x333333;
+      const buyBg = this.add.rectangle(cx + 80, btnY, 130, 36, btnColor).setStrokeStyle(2, btnBorder);
+      objects.push(buyBg);
+      objects.push(this.add.text(cx + 80, btnY, `$ ${veh.price}`, {
+        fontSize: '15px', color: canAfford ? '#88ccff' : '#444', fontFamily: 'monospace',
+      }).setOrigin(0.5));
+      if (canAfford) {
+        buyBg.setInteractive({ useHandCursor: true });
+        buyBg.on('pointerdown', () => { buyVehicle(veh.id, veh.price); this.renderTab(); });
+        buyBg.on('pointerover', () => buyBg.setFillStyle(0x143050));
+        buyBg.on('pointerout', () => buyBg.setFillStyle(btnColor));
+      }
+    }
+
+    return objects;
+  }
+
+  private refreshCoins() {
+    const data = loadData();
+    this.coinsText.setText(`$ ${data.totalCoins}`);
+  }
+
   private createBackButton() {
-    const btnBg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 60, 200, 52, 0x111111)
-      .setStrokeStyle(2, 0x444444)
-      .setInteractive({ useHandCursor: true });
-    const btnT = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 60, '< Back to Menu', {
-      fontSize: '17px', color: '#888888', fontFamily: 'monospace',
+    const btnBg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 44, 200, 48, 0x111111)
+      .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true });
+    this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 44, '< Back to Menu', {
+      fontSize: '16px', color: '#888', fontFamily: 'monospace',
     }).setOrigin(0.5);
-
     btnBg.on('pointerdown', () => this.scene.start('GameScene'));
     btnBg.on('pointerover', () => btnBg.setFillStyle(0x222222));
     btnBg.on('pointerout', () => btnBg.setFillStyle(0x111111));
-
-    // Keyboard shortcut
     this.input.keyboard!.on('keydown-ESC', () => this.scene.start('GameScene'));
   }
 }

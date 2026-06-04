@@ -34,6 +34,13 @@ const P: Record<string, number | null> = {
   'Z': 0xffdd00,      // bomber warning yellow
   'V': 0x22aa44,      // repair green
   'v': 0x116622,      // repair dark green
+  'S': 0x5b8aa8,      // scout blue-grey
+  's': 0x3a607a,      // scout dark
+  'Q': 0x778899,      // scout gun grey
+  'T': 0x8b7340,      // APC tan/desert
+  't': 0x5e4d2a,      // APC dark tan
+  'q': 0x4a3d20,      // APC gun dark
+  'к': 0x6e5c30,      // APC accent (cyrillic к used as unique key)
 };
 
 function drawPixelArt(
@@ -307,6 +314,57 @@ const BONUS_REPAIR_ROWS = [
   '...KVVVVK...',
 ];
 
+// Scout vehicle — narrow, fast, 10×20, scale=3 → 30×60
+// Sleek blue-grey recon vehicle, smaller silhouette
+const SCOUT_ROWS = [
+  '....SS....',
+  '....SS....',
+  '....SS....',
+  '...SSSS...',
+  '.KKKsKKK..',
+  'KSwBBSwwsK',
+  'KSwYYSwwsK',
+  'Kssssssssк',
+  'KSSSSSSssK',
+  'WSSSSSSssW',
+  'WSSSSSSssW',
+  'KSSSSSSssK',
+  'KSLSSSSLsK',
+  'KSSSSSSssK',
+  'WSSSSSSssW',
+  'WSSSSSSssW',
+  'KSSSSSSssK',
+  'KsSSsssssk',
+  '.KSSSSSsK.',
+  '..KSSSSK..',
+];
+
+// APC vehicle — wide heavy armored, 16×22, scale=3 → 48×66
+const APC_ROWS = [
+  '......QQ.......',
+  '......QQ.......',
+  '......QQ.......',
+  '.....QQQQ......',
+  '.KKKKKqKKKKKK..',
+  'KTTBBBTTTwwTTK.',
+  'KTTYYYTTTwwTTK.',
+  'KqqqqqqqqqqqTK.',
+  'KTTTTTTTTTTTTкK',
+  'WTTTtTTTTTtTTWW',
+  'WTTTtTTTTTtTTWW',
+  'KTTTTTTTTTTTTкK',
+  'KTLTTTTTTLTTtK.',
+  'KTTTTTTTTTTTtK.',
+  'WTTTtTTTTTtTTWW',
+  'WTTTtTTTTTtTTWW',
+  'KTTTTTTTTTTTtK.',
+  'KtTtTtttTtTttK.',
+  '.KTTTTTTTTTtK..',
+  '..KTYYYYYYtK...',
+  '...............',
+  '...............',
+];
+
 // ─── Exported creator ──────────────────────────────────────────────────────
 export function createPixelTextures(scene: Phaser.Scene) {
   const S = 3; // pixel scale
@@ -330,6 +388,8 @@ export function createPixelTextures(scene: Phaser.Scene) {
   drawPixelArt(scene, 'runner', norm(RUNNER_ROWS), S);
   drawPixelArt(scene, 'bomber', norm(BOMBER_ROWS), S);
   drawPixelArt(scene, 'bonus_repair', norm(BONUS_REPAIR_ROWS), S);
+  drawPixelArt(scene, 'vehicle_scout', norm(SCOUT_ROWS), S);
+  drawPixelArt(scene, 'vehicle_apc', norm(APC_ROWS), S);
 
   // Tiny explosion particle
   const gfx = scene.make.graphics({ x: 0, y: 0 });

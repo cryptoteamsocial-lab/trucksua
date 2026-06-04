@@ -1,16 +1,15 @@
 export type GameState = 'MENU' | 'PLAYING' | 'VICTORY' | 'GAME_OVER';
-
 export type EnemyType = 'WALKER' | 'HEAVY' | 'RUNNER' | 'BOMBER';
-
 export type BonusType = 'ALLY' | 'REPAIR';
-
 export type UpgradeId = 'engine' | 'armor' | 'weapon' | 'damage';
+export type VehicleId = 'humvee' | 'scout' | 'apc';
+export type MissionGoalType = 'kill' | 'kill_heavy' | 'kill_bomber' | 'coins' | 'convoy' | 'run' | 'survive';
 
 export interface UpgradeData {
-  engine: number;  // 0-5: player speed bonus
-  armor: number;   // 0-5: max HP bonus
-  weapon: number;  // 0-5: fire rate bonus
-  damage: number;  // 0-5: bullet damage
+  engine: number;
+  armor: number;
+  weapon: number;
+  damage: number;
 }
 
 export interface LeaderboardEntry {
@@ -20,13 +19,27 @@ export interface LeaderboardEntry {
   date: string;
 }
 
+export interface Mission {
+  id: string;
+  label: string;
+  goalType: MissionGoalType;
+  goal: number;
+  progress: number;
+  reward: number;
+  claimed: boolean;
+}
+
 export interface SavedData {
   totalCoins: number;
   bestScore: number;
   maxConvoy: number;
   upgrades: UpgradeData;
   leaderboard: LeaderboardEntry[];
-  lastDailyReward: string; // ISO date string
+  lastDailyReward: string;
+  ownedVehicles: VehicleId[];
+  selectedVehicle: VehicleId;
+  missions: Mission[];
+  missionsDate: string;
 }
 
 declare global {
@@ -35,13 +48,7 @@ declare global {
       WebApp: {
         ready: () => void;
         expand: () => void;
-        initDataUnsafe?: {
-          user?: {
-            id: number;
-            first_name: string;
-            username?: string;
-          };
-        };
+        initDataUnsafe?: { user?: { id: number; first_name: string; username?: string } };
       };
     };
   }

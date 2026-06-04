@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { CONFIG, getStatFromUpgrade } from './config';
-import { loadData, addCoins, recordRun, claimDailyReward } from './storage';
+import { CONFIG, VEHICLES, getStatFromUpgrade } from './config';
+import { loadData, addCoins, recordRun, claimDailyReward, updateMissionProgress } from './storage';
 import { createPixelTextures } from './PixelArt';
 import type { GameState, EnemyType } from './types';
 
@@ -47,11 +47,20 @@ export default class GameScene extends Phaser.Scene {
   private roadLines: Phaser.GameObjects.Rectangle[] = [];
   private roadLineY: number[] = [];
 
-  // Player stats (loaded from upgrades)
+  // Player stats (loaded from upgrades + selected vehicle)
   private playerMaxHp = CONFIG.PLAYER_HP;
   private playerSpeedX = CONFIG.PLAYER_SPEED_X;
   private playerFireRate = CONFIG.PLAYER_FIRE_RATE;
   private playerDmg = 1;
+  private playerSpreadShots = 1;
+  private playerVehicleKey = 'player';
+
+  // Mission session counters
+  private missionKillCount = 0;
+  private missionHeavyCount = 0;
+  private missionBomberCount = 0;
+  private missionRunCoins = 0;
+  private missionSurviveSeconds = 0;
 
   // Player state
   private playerContainer!: Phaser.GameObjects.Container;
@@ -182,7 +191,8 @@ export default class GameScene extends Phaser.Scene {
     const flagB = this.add.rectangle(CONFIG.WIDTH / 2, 200, 280, 12, 0x005bbb).setDepth(21);
     const flagY = this.add.rectangle(CONFIG.WIDTH / 2, 212, 280, 12, 0xffd700).setDepth(21);
 
-    const demo = this.add.image(CONFIG.WIDTH / 2, 300, 'player').setScale(1.5).setDepth(21);
+    const vehKey = data.selectedVehicle ? VEHICLES.find(v => v.id === data.selectedVehicle)?.textureKey ?? 'player' : 'player';
+    const demo = this.add.image(CONFIG.WIDTH / 2, 300, vehKey).setScale(1.5).setDepth(21);
     this.tweens.add({ targets: demo, y: 308, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
 
     // Stats
@@ -213,22 +223,31 @@ export default class GameScene extends Phaser.Scene {
     garageBg.on('pointerover', () => garageBg.setFillStyle(0x1a3800));
     garageBg.on('pointerout', () => garageBg.setFillStyle(0x0d2200));
 
-    // Leaderboard button
-    const lbBg = this.add.rectangle(CONFIG.WIDTH / 2, 608, 190, 46, 0x0a0a22).setDepth(21)
+    // Two bottom buttons side by side
+    const lbBg = this.add.rectangle(CONFIG.WIDTH / 2 - 54, 610, 180, 46, 0x0a0a22).setDepth(21)
       .setStrokeStyle(2, 0x3333aa).setInteractive({ useHandCursor: true });
-    const lbT = this.add.text(CONFIG.WIDTH / 2, 608, '[L] Leaders', {
-      fontSize: '16px', color: '#6666ff', fontFamily: 'monospace',
+    const lbT = this.add.text(CONFIG.WIDTH / 2 - 54, 610, '[L] Leaders', {
+      fontSize: '15px', color: '#6666ff', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(22);
     lbBg.on('pointerdown', () => this.showLeaderboard());
     lbBg.on('pointerover', () => lbBg.setFillStyle(0x141433));
     lbBg.on('pointerout', () => lbBg.setFillStyle(0x0a0a22));
 
-    const ver = this.add.text(CONFIG.WIDTH / 2, 790, 'Steel Road: Convoy  v1.1', {
+    const missBg = this.add.rectangle(CONFIG.WIDTH / 2 + 54, 610, 180, 46, 0x1a0a22).setDepth(21)
+      .setStrokeStyle(2, 0x773399).setInteractive({ useHandCursor: true });
+    const missT = this.add.text(CONFIG.WIDTH / 2 + 54, 610, '[M] Missions', {
+      fontSize: '15px', color: '#cc88ff', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(22);
+    missBg.on('pointerdown', () => { this.clearMenu(); this.scene.start('MissionsScene'); });
+    missBg.on('pointerover', () => missBg.setFillStyle(0x2a1033));
+    missBg.on('pointerout', () => missBg.setFillStyle(0x1a0a22));
+
+    const ver = this.add.text(CONFIG.WIDTH / 2, 792, 'Steel Road: Convoy  v1.2', {
       fontSize: '11px', color: '#222233', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(22);
 
     this.menuObjects = [bg, title, sub, flagB, flagY, demo, statsBg, statsT,
-      playBg, playT, garageBg, garageT, lbBg, lbT, ver];
+      playBg, playT, garageBg, garageT, lbBg, lbT, missBg, missT, ver];
 
     // Daily reward popup
     if (dailyReward !== null) {
@@ -310,13 +329,27 @@ export default class GameScene extends Phaser.Scene {
     this.clearOverlay();
     this.tweens.killAll();
 
-    // Load upgrade stats
+    // Load vehicle + upgrade stats
     const data = loadData();
     const upg = data.upgrades;
-    this.playerMaxHp    = CONFIG.PLAYER_HP + getStatFromUpgrade('armor', upg.armor);
-    this.playerSpeedX   = CONFIG.PLAYER_SPEED_X + getStatFromUpgrade('engine', upg.engine);
-    this.playerFireRate = CONFIG.PLAYER_FIRE_RATE - getStatFromUpgrade('weapon', upg.weapon);
+    const veh = VEHICLES.find(v => v.id === data.selectedVehicle) ?? VEHICLES[0];
+    this.playerVehicleKey  = veh.textureKey;
+    this.playerSpreadShots = veh.spreadShots;
+    this.playerMaxHp    = veh.baseHp       + getStatFromUpgrade('armor',  upg.armor);
+    this.playerSpeedX   = veh.baseSpeed    + getStatFromUpgrade('engine', upg.engine);
+    this.playerFireRate = veh.baseFireRate  - getStatFromUpgrade('weapon', upg.weapon);
     this.playerDmg      = 1 + getStatFromUpgrade('damage', upg.damage);
+
+    // Update player sprite texture if changed
+    const playerSprite = this.playerContainer.getAt(0) as Phaser.GameObjects.Image;
+    playerSprite.setTexture(this.playerVehicleKey);
+
+    // Reset mission session counters
+    this.missionKillCount = 0;
+    this.missionHeavyCount = 0;
+    this.missionBomberCount = 0;
+    this.missionRunCoins = 0;
+    this.missionSurviveSeconds = 0;
 
     this.playerHp = this.playerMaxHp;
     this.playerCoins = 0;
@@ -393,7 +426,15 @@ export default class GameScene extends Phaser.Scene {
     this.playerShootTimer += delta;
     if (this.playerShootTimer >= this.playerFireRate) {
       this.playerShootTimer = 0;
-      this.spawnBullet(this.playerX, this.playerY - 33, CONFIG.BULLET_SPEED, 'bullet_p', this.playerDmg);
+      if (this.playerSpreadShots === 1) {
+        this.spawnBullet(this.playerX, this.playerY - 33, CONFIG.BULLET_SPEED, 'bullet_p', this.playerDmg);
+      } else {
+        // Triple spread (APC)
+        const offsets = [-22, 0, 22];
+        for (const ox of offsets) {
+          this.spawnBullet(this.playerX + ox, this.playerY - 33, CONFIG.BULLET_SPEED, 'bullet_p', this.playerDmg);
+        }
+      }
     }
   }
 
@@ -501,6 +542,10 @@ export default class GameScene extends Phaser.Scene {
     this.enemies.splice(index, 1);
     this.playerCoins += e.coins;
     this.enemiesKilled++;
+    // Track mission progress
+    this.missionKillCount++;
+    if (e.type === 'HEAVY')  this.missionHeavyCount++;
+    if (e.type === 'BOMBER') this.missionBomberCount++;
     const txt = this.add.text(nx, ny, `+${e.coins}`, {
       fontSize: '16px', color: '#FFD700', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(15);
@@ -700,6 +745,7 @@ export default class GameScene extends Phaser.Scene {
 
   private updateLevel(delta: number) {
     this.levelTimer += delta;
+    this.missionSurviveSeconds = this.levelTimer / 1000;
     this.difficultyScale = 1 + (this.levelTimer / CONFIG.LEVEL_DURATION) * 0.9;
     if (this.levelTimer >= CONFIG.LEVEL_DURATION) this.triggerVictory();
   }
@@ -728,6 +774,16 @@ export default class GameScene extends Phaser.Scene {
     return Math.abs(ax - bx) < (aw + bw) / 2 && Math.abs(ay - by) < (ah + bh) / 2;
   }
 
+  private flushMissions(isVictory: boolean) {
+    updateMissionProgress('kill',         this.missionKillCount);
+    updateMissionProgress('kill_heavy',   this.missionHeavyCount);
+    updateMissionProgress('kill_bomber',  this.missionBomberCount);
+    updateMissionProgress('coins',        this.playerCoins);
+    updateMissionProgress('convoy',       this.allies.length + 1);
+    updateMissionProgress('survive',      Math.floor(this.missionSurviveSeconds));
+    if (isVictory) updateMissionProgress('run', 1);
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // VICTORY
   // ═══════════════════════════════════════════════════════════════════════════
@@ -740,6 +796,7 @@ export default class GameScene extends Phaser.Scene {
     this.playerCoins += bonus;
     addCoins(this.playerCoins);
     const saved = recordRun(this.playerCoins, this.enemiesKilled, this.allies.length);
+    this.flushMissions(true);
 
     this.clearOverlay();
     const D = 25;
@@ -792,6 +849,7 @@ export default class GameScene extends Phaser.Scene {
 
     addCoins(this.playerCoins);
     recordRun(this.playerCoins, this.enemiesKilled, this.allies.length);
+    this.flushMissions(false);
     this.cameras.main.shake(420, 0.022);
 
     this.time.delayedCall(420, () => {
