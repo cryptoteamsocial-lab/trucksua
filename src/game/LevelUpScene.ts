@@ -13,14 +13,23 @@ interface LevelUpData {
 }
 
 export default class LevelUpScene extends Phaser.Scene {
+  private levelData!: LevelUpData;
+  private chestPhase = true;
+
   constructor() { super({ key: 'LevelUpScene' }); }
 
-  create(data: LevelUpData) {
-    const {
-      level, levelCoins, levelKilled, convoy,
-      tempUpgrades, runTotalCoins, runTotalKilled,
-    } = data;
+  create(data: LevelUpData & { _opened?: boolean }) {
+    // init() already ran and set chestPhase / this.levelData when restarted
+    // On first call data is valid; on restart init() pre-sets this.levelData
+    if (!this.levelData || !data._opened) {
+      this.levelData = data as LevelUpData;
+    }
+    if (this.chestPhase) this.buildChestScreen();
+    else this.buildUpgradeScreen();
+  }
 
+  private buildChestScreen() {
+    const { level, levelCoins, levelKilled, convoy } = this.levelData;
     const cx = CONFIG.WIDTH / 2;
     const isLast = level >= 15;
 
@@ -28,7 +37,6 @@ export default class LevelUpScene extends Phaser.Scene {
     this.add.rectangle(cx, 0, CONFIG.WIDTH, 5, 0x005bbb);
     this.add.rectangle(cx, 5, CONFIG.WIDTH, 5, 0xffd700);
 
-    // ── Level complete header ─────────────────────────────────────────────────
     this.add.text(cx, 44, isLast ? '🏆 ЗАБІГ ЗАВЕРШЕНО!' : '✅ РІВЕНЬ ПРОЙДЕНО!', {
       fontSize: '26px', color: isLast ? '#ffd700' : '#88ff44',
       fontFamily: 'monospace', stroke: '#000', strokeThickness: 5,
@@ -39,65 +47,99 @@ export default class LevelUpScene extends Phaser.Scene {
       fontSize: '18px', color: '#88aacc', fontFamily: 'monospace',
     }).setOrigin(0.5);
 
-    // Stats box
-    this.add.rectangle(cx, 158, CONFIG.WIDTH - 24, 100, 0x0a1520).setStrokeStyle(2, 0x1a3344);
-    this.add.text(cx, 120, `💰 ${levelCoins}  ×  👹 ${levelKilled}  |  🚗 ${convoy}`, {
+    // Stats
+    this.add.rectangle(cx, 158, CONFIG.WIDTH - 24, 90, 0x0a1520).setStrokeStyle(2, 0x1a3344);
+    this.add.text(cx, 130, `💰 ${levelCoins}   👹 ${levelKilled}   🚗 ${convoy}`, {
       fontSize: '16px', color: '#ccffcc', fontFamily: 'monospace',
     }).setOrigin(0.5);
-    this.add.text(cx, 152, `Загалом за забіг:  💰 ${runTotalCoins}  |  👹 ${runTotalKilled}`, {
+    this.add.text(cx, 160, `Загалом: 💰 ${this.levelData.runTotalCoins}  |  👹 ${this.levelData.runTotalKilled}`, {
       fontSize: '13px', color: '#667788', fontFamily: 'monospace',
     }).setOrigin(0.5);
-    this.add.text(cx, 184, `Рівень: ${level} / 15`, {
+    this.add.text(cx, 188, `Рівень: ${level} / 15`, {
       fontSize: '14px', color: '#556677', fontFamily: 'monospace',
     }).setOrigin(0.5);
 
     if (isLast) {
-      // ── Final victory screen ──────────────────────────────────────────────
-      this.buildFinalVictory(cx, runTotalCoins, runTotalKilled, level);
-    } else {
-      // ── Upgrade choices ───────────────────────────────────────────────────
-      this.add.text(cx, 228, 'ВИБЕРІТЬ ПОКРАЩЕННЯ', {
-        fontSize: '15px', color: '#ffd700', fontFamily: 'monospace',
-      }).setOrigin(0.5);
-      this.add.rectangle(cx, 244, CONFIG.WIDTH - 30, 1, 0x223344);
+      this.buildFinalVictory(cx, this.levelData.runTotalCoins, this.levelData.runTotalKilled, level);
+      return;
+    }
 
-      const pickedIds = tempUpgrades.map(u => u.id);
-      const pool = RUN_UPGRADES.filter(u => !pickedIds.includes(u.id));
-      // Pick 3 random choices
-      const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 3);
+    // Chest
+    this.add.text(cx, 330, '📦', { fontSize: '96px', fontFamily: 'monospace' }).setOrigin(0.5);
+    this.add.text(cx, 440, 'СКРИНЯ З ПОКРАЩЕННЯМ', {
+      fontSize: '16px', color: '#ffd700', fontFamily: 'monospace',
+    }).setOrigin(0.5);
+    this.add.text(cx, 474, 'Натисни щоб відкрити', {
+      fontSize: '13px', color: '#445566', fontFamily: 'monospace',
+    }).setOrigin(0.5);
 
-      shuffled.forEach((upg, i) => {
-        const y = 280 + i * 130;
-        this.buildUpgradeCard(cx, y, upg, () => {
-          const nextUpgrades = [...tempUpgrades, upg];
-          // Apply coins immediately if that's the effect
-          if (upg.effect === 'coins') addCoins(upg.value);
-          const nextLevel = level + 1;
-          this.scene.start('GameScene', {
-            resumeLevel: nextLevel,
-            tempUpgrades: nextUpgrades,
-            runTotalCoins,
-            runTotalKilled,
-          });
-        });
-      });
+    const openBg = this.add.rectangle(cx, CONFIG.HEIGHT - 100, CONFIG.WIDTH - 60, 60, 0x0a2200)
+      .setStrokeStyle(3, 0x44aa00).setInteractive({ useHandCursor: true });
+    this.add.text(cx, CONFIG.HEIGHT - 100, '🔓 ВІДКРИТИ СКРИНЮ', {
+      fontSize: '18px', color: '#88ff44', fontFamily: 'monospace',
+    }).setOrigin(0.5);
+    openBg.on('pointerdown', () => {
+      this.cameras.main.flash(200, 255, 220, 0);
+      this.time.delayedCall(220, () => { this.scene.restart({ ...this.levelData, _opened: true }); });
+    });
+    openBg.on('pointerover', () => openBg.setFillStyle(0x1a4400));
+    openBg.on('pointerout',  () => openBg.setFillStyle(0x0a2200));
+  }
 
-      // Skip button
-      const skipBg = this.add.rectangle(cx, CONFIG.HEIGHT - 42, 180, 44, 0x0a0a0a)
-        .setStrokeStyle(2, 0x334455).setInteractive({ useHandCursor: true });
-      this.add.text(cx, CONFIG.HEIGHT - 42, 'Пропустити →', {
-        fontSize: '14px', color: '#445566', fontFamily: 'monospace',
-      }).setOrigin(0.5);
-      skipBg.on('pointerdown', () => {
+  private buildUpgradeScreen() {
+    const { level, tempUpgrades, runTotalCoins, runTotalKilled } = this.levelData;
+    const cx = CONFIG.WIDTH / 2;
+
+    this.add.rectangle(cx, CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x040a10);
+    this.add.rectangle(cx, 0, CONFIG.WIDTH, 5, 0x005bbb);
+    this.add.rectangle(cx, 5, CONFIG.WIDTH, 5, 0xffd700);
+
+    this.add.text(cx, 38, '✅ ВИБЕРІТЬ ПОКРАЩЕННЯ', {
+      fontSize: '20px', color: '#ffd700', fontFamily: 'monospace', stroke: '#000', strokeThickness: 4,
+    }).setOrigin(0.5);
+    this.add.text(cx, 68, `Рівень: ${level} / 15`, {
+      fontSize: '14px', color: '#445566', fontFamily: 'monospace',
+    }).setOrigin(0.5);
+    this.add.rectangle(cx, 82, CONFIG.WIDTH - 30, 1, 0x223344);
+
+    const pickedIds = tempUpgrades.map(u => u.id);
+    const pool = RUN_UPGRADES.filter(u => !pickedIds.includes(u.id));
+    const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 3);
+
+    shuffled.forEach((upg, i) => {
+      const y = 110 + i * 200;
+      this.buildUpgradeCard(cx, y, upg, () => {
+        const nextUpgrades = [...tempUpgrades, upg];
+        if (upg.effect === 'coins') addCoins(upg.value);
         this.scene.start('GameScene', {
           resumeLevel: level + 1,
-          tempUpgrades,
+          tempUpgrades: nextUpgrades,
           runTotalCoins,
           runTotalKilled,
         });
       });
-      skipBg.on('pointerover', () => skipBg.setFillStyle(0x111111));
-      skipBg.on('pointerout',  () => skipBg.setFillStyle(0x0a0a0a));
+    });
+
+    const skipBg = this.add.rectangle(cx, CONFIG.HEIGHT - 42, 180, 44, 0x0a0a0a)
+      .setStrokeStyle(2, 0x334455).setInteractive({ useHandCursor: true });
+    this.add.text(cx, CONFIG.HEIGHT - 42, 'Пропустити →', {
+      fontSize: '14px', color: '#445566', fontFamily: 'monospace',
+    }).setOrigin(0.5);
+    skipBg.on('pointerdown', () => {
+      this.scene.start('GameScene', { resumeLevel: level + 1, tempUpgrades, runTotalCoins, runTotalKilled });
+    });
+    skipBg.on('pointerover', () => skipBg.setFillStyle(0x111111));
+    skipBg.on('pointerout',  () => skipBg.setFillStyle(0x0a0a0a));
+  }
+
+  // scene.restart passes data back into create() — detect opened flag
+  init(rawData: LevelUpData & { _opened?: boolean }) {
+    if (rawData._opened) {
+      this.chestPhase = false;
+      const { _opened: _, ...rest } = rawData;
+      this.levelData = rest as LevelUpData;
+    } else {
+      this.chestPhase = true;
     }
   }
 

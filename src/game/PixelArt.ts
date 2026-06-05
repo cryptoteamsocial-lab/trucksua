@@ -270,18 +270,18 @@ const CHMOBIT_ROWS = [
   '....KMMK....',
 ];
 
-// Repair bonus — green cross, 12×12, scale=3 → 36×36
+// Repair bonus — wrench on green background, 12×12, scale=3 → 36×36
 const BONUS_REPAIR_ROWS = [
   '..KVVVVVVK..',
-  '.KVVVvVVVVK.',
-  'KVVVHHHVVvK.',
-  'KVVVHHHVVvK.',
-  'KVHHHHHHHvK.',
-  'KVHHHHHHHvK.',
-  'KVHHHHHHHvK.',
-  'KVVVHHHVVvK.',
-  'KVVVHHHVVvK.',
-  '.KVVVvVVVVK.',
+  '.KVVVVVVVvK.',
+  'KVVKKGGKVvVK',
+  'KVVKGGGKVvVK',
+  'KVVVKGKVVvVK',
+  'KVVVVGVVVvVK',
+  'KVVVGKVVVvVK',
+  'KVVKGGGKVvVK',
+  'KVVKKGGKVvVK',
+  '.KVVVVVVVvK.',
   '..KVVVVVvK..',
   '...KVVVVK...',
 ];
