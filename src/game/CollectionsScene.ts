@@ -21,8 +21,11 @@ export default class CollectionsScene extends Phaser.Scene {
     this.add.text(cx, 38, '🚗 ЗБОРИ', {
       fontSize: '28px', color: '#FFD700', fontFamily: 'monospace', stroke: '#000', strokeThickness: 5,
     }).setOrigin(0.5).setScrollFactor(0);
-    this.add.text(cx, 74, 'Активні збори на техніку для ЗСУ', {
+    this.add.text(cx, 68, 'Завдяки підтримці спільноти', {
       fontSize: '12px', color: '#445566', fontFamily: 'monospace',
+    }).setOrigin(0.5).setScrollFactor(0);
+    this.add.text(cx, 86, 'вже передано 170+ авто 🚗', {
+      fontSize: '14px', color: '#88ff44', fontFamily: 'monospace',
     }).setOrigin(0.5).setScrollFactor(0);
     this.add.rectangle(cx, 98, CONFIG.WIDTH - 24, 1, 0x1a2a3a).setScrollFactor(0);
 
@@ -91,7 +94,9 @@ export default class CollectionsScene extends Phaser.Scene {
 
     CHARITY.history.forEach((entry, i) => {
       const rowBg = i % 2 === 0 ? 0x090e18 : 0x080c14;
-      this.add.rectangle(cx, y + 22, CONFIG.WIDTH - 24, 44, rowBg).setStrokeStyle(1, 0x1a2233);
+      const rowBgRect = this.add.rectangle(cx, y + 22, CONFIG.WIDTH - 24, 44, rowBg)
+        .setStrokeStyle(1, 0x1a2233).setInteractive({ useHandCursor: true });
+      rowBgRect.on('pointerdown', () => this.showCarDetail(entry));
       this.add.text(24, y + 12, entry.name, { fontSize: '14px', color: '#aaccdd', fontFamily: 'monospace' }).setOrigin(0, 0.5);
       this.add.text(24, y + 34, entry.unit, { fontSize: '11px', color: '#445566', fontFamily: 'monospace' }).setOrigin(0, 0.5);
       this.add.text(CONFIG.WIDTH - 18, y + 22, entry.date, { fontSize: '12px', color: '#334455', fontFamily: 'monospace' }).setOrigin(1, 0.5);
@@ -105,15 +110,55 @@ export default class CollectionsScene extends Phaser.Scene {
       }
     });
 
-    // Fixed back button
-    const backBg = this.add.rectangle(cx, CONFIG.HEIGHT - 40, 200, 46, 0x111111)
-      .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true }).setScrollFactor(0);
-    this.add.text(cx, CONFIG.HEIGHT - 40, '< До меню', {
-      fontSize: '16px', color: '#888', fontFamily: 'monospace',
-    }).setOrigin(0.5).setScrollFactor(0);
-    backBg.on('pointerdown', () => this.scene.start('GameScene'));
-    backBg.on('pointerover', () => backBg.setFillStyle(0x222222));
-    backBg.on('pointerout',  () => backBg.setFillStyle(0x111111));
+    // Fixed back arrow top-left
+    const arrow = this.add.text(28, 38, '←', {
+      fontSize: '22px', color: '#88ccff', fontFamily: 'monospace',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setScrollFactor(0);
+    arrow.on('pointerdown', () => this.scene.start('GameScene'));
     this.input.keyboard!.on('keydown-ESC', () => this.scene.start('GameScene'));
+  }
+
+  private showCarDetail(entry: { name: string; date: string; unit: string; desc: string }) {
+    const D = 30;
+    const cx = CONFIG.WIDTH / 2;
+    const scrollY = this.cameras.main.scrollY;
+    const modalY = scrollY + CONFIG.HEIGHT / 2;
+
+    const overlay = this.add.rectangle(cx, scrollY + CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x000000, 0.75).setDepth(D);
+    const box = this.add.rectangle(cx, modalY, CONFIG.WIDTH - 40, 320, 0x0a1520).setDepth(D).setStrokeStyle(2, 0x3377cc);
+
+    const title = this.add.text(cx, modalY - 120, entry.name, {
+      fontSize: '18px', color: '#ffffff', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(D + 1);
+
+    this.add.text(cx, modalY - 84, `📅 ${entry.date}`, {
+      fontSize: '13px', color: '#88aacc', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(D + 1);
+
+    this.add.text(cx, modalY - 56, `🪖 ${entry.unit}`, {
+      fontSize: '13px', color: '#88ccff', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(D + 1);
+
+    this.add.text(cx, modalY - 20, entry.desc, {
+      fontSize: '13px', color: '#aaccdd', fontFamily: 'monospace', align: 'center',
+      wordWrap: { width: CONFIG.WIDTH - 80 },
+    }).setOrigin(0.5).setDepth(D + 1);
+
+    this.add.text(cx, modalY + 30, '✅ Передано', {
+      fontSize: '16px', color: '#44ff44', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(D + 1);
+
+    const closeBg = this.add.rectangle(cx, modalY + 90, 160, 44, 0x1a1a1a)
+      .setDepth(D + 1).setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true });
+    const closeT = this.add.text(cx, modalY + 90, 'Закрити', {
+      fontSize: '16px', color: '#888888', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(D + 2);
+
+    const objs = [overlay, box, title, closeBg, closeT];
+    const close = () => objs.forEach(o => o.destroy());
+    closeBg.on('pointerdown', close);
+    overlay.setInteractive().on('pointerdown', close);
+
+    this.tweens.add({ targets: box, scaleX: { from: 0.7, to: 1 }, scaleY: { from: 0.7, to: 1 }, duration: 250, ease: 'Back.Out' });
   }
 }

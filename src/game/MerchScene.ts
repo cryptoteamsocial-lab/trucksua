@@ -5,44 +5,36 @@ interface MerchItem {
   icon: string;
   name: string;
   stars: number;
-  category: string;
 }
 
 const MERCH: MerchItem[] = [
-  { icon: '🎽', name: 'Футболка Бавовна Road',  stars: 150, category: 'Одяг' },
-  { icon: '🎽', name: 'Футболка "Слава ЗСУ"',  stars: 130, category: 'Одяг' },
-  { icon: '🧢', name: 'Кепка Бавовна Road',     stars: 90,  category: 'Одяг' },
-  { icon: '☕', name: 'Чашка "Слава ЗСУ"',      stars: 65,  category: 'Аксесуари' },
-  { icon: '🔑', name: 'Брелок Тризуб',          stars: 35,  category: 'Аксесуари' },
-  { icon: '🎖', name: 'Шеврон Бавовна Road',    stars: 50,  category: 'Аксесуари' },
-  { icon: '📦', name: 'Стікер-пак (12 шт)',      stars: 25,  category: 'Аксесуари' },
-  { icon: '📦', name: 'Набір "Підтримай ЗСУ"',  stars: 250, category: 'Набори' },
+  { icon: '🎽', name: 'Футболка Бавовна Road',  stars: 150 },
+  { icon: '🧢', name: 'Кепка Бавовна Road',     stars: 90  },
+  { icon: '🎖', name: 'Шеврон Бавовна Road',    stars: 50  },
+  { icon: '🔑', name: 'Брелок Тризуб',          stars: 35  },
 ];
 
 export default class MerchScene extends Phaser.Scene {
   constructor() { super({ key: 'MerchScene' }); }
 
   create() {
-    const cardH = 130;
-    const gap = 10;
-    const contentH = 120 + MERCH.length * (cardH + gap) + 80;
-    const scrollH = Math.max(contentH, CONFIG.HEIGHT - 80);
+    const cx = CONFIG.WIDTH / 2;
 
-    this.cameras.main.setBounds(0, 0, CONFIG.WIDTH, scrollH);
-    this.add.rectangle(CONFIG.WIDTH / 2, scrollH / 2, CONFIG.WIDTH, scrollH, 0x080c14);
+    this.add.rectangle(cx, CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x080c14);
 
     // Fixed header
-    this.add.rectangle(CONFIG.WIDTH / 2, 0, CONFIG.WIDTH, 4, 0x005bbb).setScrollFactor(0);
-    this.add.rectangle(CONFIG.WIDTH / 2, 4, CONFIG.WIDTH, 4, 0xffd700).setScrollFactor(0);
-    this.add.text(CONFIG.WIDTH / 2, 42, '🛍 МЕРЧ', {
+    this.add.rectangle(cx, 0, CONFIG.WIDTH, 4, 0x005bbb).setScrollFactor(0);
+    this.add.rectangle(cx, 4, CONFIG.WIDTH, 4, 0xffd700).setScrollFactor(0);
+    this.add.text(cx, 42, '🛍 МЕРЧ', {
       fontSize: '28px', color: '#FFD700', fontFamily: 'monospace', stroke: '#000', strokeThickness: 5,
     }).setOrigin(0.5).setScrollFactor(0);
-    this.add.text(CONFIG.WIDTH / 2, 78, 'Прибуток від продажу йде на підтримку ЗСУ', {
+    this.add.text(cx, 78, 'Прибуток від продажу йде на підтримку ЗСУ', {
       fontSize: '11px', color: '#445566', fontFamily: 'monospace',
     }).setOrigin(0.5).setScrollFactor(0);
-    this.add.rectangle(CONFIG.WIDTH / 2, 100, CONFIG.WIDTH - 30, 1, 0x223344).setScrollFactor(0);
+    this.add.rectangle(cx, 100, CONFIG.WIDTH - 30, 1, 0x223344).setScrollFactor(0);
 
-    const cx = CONFIG.WIDTH / 2;
+    const cardH = 130;
+    const gap = 10;
     let y = 114;
 
     MERCH.forEach(item => {
@@ -51,13 +43,9 @@ export default class MerchScene extends Phaser.Scene {
 
       this.add.text(cx - 130, y + cardH / 2, item.icon, { fontSize: '40px', fontFamily: 'monospace' }).setOrigin(0.5);
 
-      this.add.text(cx - 60, y + 28, item.name, {
+      this.add.text(cx - 60, y + 38, item.name, {
         fontSize: '15px', color: '#aaccdd', fontFamily: 'monospace',
         wordWrap: { width: CONFIG.WIDTH - 160 },
-      }).setOrigin(0, 0.5);
-
-      this.add.text(cx - 60, y + 62, item.category, {
-        fontSize: '11px', color: '#334455', fontFamily: 'monospace',
       }).setOrigin(0, 0.5);
 
       const starsBg = this.add.rectangle(CONFIG.WIDTH - 72, y + cardH / 2, 110, 40, 0x1a1200)
@@ -84,22 +72,11 @@ export default class MerchScene extends Phaser.Scene {
       }
     ).setOrigin(0.5);
 
-    // Touch scroll
-    this.input.on('pointermove', (ptr: Phaser.Input.Pointer) => {
-      if (ptr.isDown) {
-        this.cameras.main.scrollY -= ptr.velocity.y * 0.016;
-      }
-    });
-
-    // Fixed back button
-    const btnBg = this.add.rectangle(cx, CONFIG.HEIGHT - 44, 200, 48, 0x111111)
-      .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true }).setScrollFactor(0);
-    this.add.text(cx, CONFIG.HEIGHT - 44, '< До меню', {
-      fontSize: '16px', color: '#888', fontFamily: 'monospace',
-    }).setOrigin(0.5).setScrollFactor(0);
-    btnBg.on('pointerdown', () => this.scene.start('GameScene'));
-    btnBg.on('pointerover', () => btnBg.setFillStyle(0x222222));
-    btnBg.on('pointerout',  () => btnBg.setFillStyle(0x111111));
+    // Back arrow top-left
+    const arrow = this.add.text(28, 38, '←', {
+      fontSize: '22px', color: '#88ccff', fontFamily: 'monospace',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setScrollFactor(0);
+    arrow.on('pointerdown', () => this.scene.start('GameScene'));
     this.input.keyboard!.on('keydown-ESC', () => this.scene.start('GameScene'));
   }
 

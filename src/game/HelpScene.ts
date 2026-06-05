@@ -101,19 +101,63 @@ export default class HelpScene extends Phaser.Scene {
 
   private buildEnemies(y: number) {
     const enemies = [
-      { icon: '🟢', name: 'Орк', desc: 'Базовий. Мало HP, середня швидкість.' },
-      { icon: '🟢', name: 'Z-Орк', desc: 'Швидкий та маневрений. Важко попасти.' },
-      { icon: '🟢', name: 'Чмобік', desc: 'Вибуховий. Наносить AoE шкоду при знищенні.' },
-      { icon: '🟢', name: 'Бронеорк', desc: 'Тяжкий. Багато HP, повільний, 30 монет.' },
+      { key: 'walker', name: 'Орк', threat: '⚠', desc: 'Базовий ворог. Мало HP, середня швидкість.', behavior: 'Йде прямо. При торканні — наносить шкоду.' },
+      { key: 'runner', name: 'Z-Орк', threat: '⚠⚠', desc: 'Швидкий та маневрений. Важко попасти.', behavior: 'Рухається зигзагом та швидко.' },
+      { key: 'bomber', name: 'Чмобік', threat: '⚠⚠⚠', desc: 'Вибуховий. AoE шкода при знищенні.', behavior: 'Стаціонарний, небезпечний вибух.' },
+      { key: 'heavy',  name: 'Бронеорк', threat: '⚠⚠⚠', desc: 'Тяжкий. Багато HP, повільний, 30 монет.', behavior: 'Повільний, але витривалий.' },
     ];
+
+    const cardH = 90;
+    const cx = CONFIG.WIDTH / 2;
+
     enemies.forEach(e => {
-      y = this.addRow(y, e.icon, e.name, e.desc);
+      this.contentGroup.push(
+        this.add.rectangle(cx, y + cardH / 2, CONFIG.WIDTH - 24, cardH, 0x0a1018).setStrokeStyle(1, 0x1a2233)
+      );
+      // Enemy sprite
+      if (this.textures.exists(e.key)) {
+        this.contentGroup.push(
+          this.add.image(36, y + cardH / 2, e.key).setScale(0.9).setOrigin(0.5)
+        );
+      }
+      // Name
+      this.contentGroup.push(
+        this.add.text(68, y + 14, e.name, { fontSize: '15px', color: '#ffffff', fontFamily: 'monospace' }).setOrigin(0, 0.5)
+      );
+      // Threat
+      this.contentGroup.push(
+        this.add.text(CONFIG.WIDTH - 18, y + 14, e.threat, { fontSize: '13px', color: '#ffaa00', fontFamily: 'monospace' }).setOrigin(1, 0.5)
+      );
+      // Desc
+      this.contentGroup.push(
+        this.add.text(68, y + 38, e.desc, { fontSize: '11px', color: '#445566', fontFamily: 'monospace', wordWrap: { width: CONFIG.WIDTH - 100 } }).setOrigin(0, 0.5)
+      );
+      // Behavior
+      this.contentGroup.push(
+        this.add.text(68, y + 60, e.behavior, { fontSize: '10px', color: '#334455', fontFamily: 'monospace', wordWrap: { width: CONFIG.WIDTH - 100 } }).setOrigin(0, 0.5)
+      );
+      y += cardH + 6;
     });
+
+    // General rules block
+    const rulesLines = [
+      '⚠️ Загальні правила:',
+      '• Ворог на нижній лінії → гравець отримує -5 HP',
+      '• Ворог торкається союзника → союзник знищується',
+      '• Якщо всі союзники знищені — грай самостійно',
+    ];
+    y += 8;
     this.contentGroup.push(
-      this.add.text(CONFIG.WIDTH / 2, y + 20, '💡 Чмобіки вибухають — тримай дистанцію!', {
-        fontSize: '11px', color: '#445566', fontFamily: 'monospace', align: 'center',
-      }).setOrigin(0.5)
+      this.add.rectangle(cx, y + 52, CONFIG.WIDTH - 24, 100, 0x0a1018).setStrokeStyle(1, 0x332200)
     );
+    rulesLines.forEach((line, i) => {
+      this.contentGroup.push(
+        this.add.text(24, y + 16 + i * 22, line, {
+          fontSize: '11px', color: i === 0 ? '#ffaa44' : '#556677', fontFamily: 'monospace',
+          wordWrap: { width: CONFIG.WIDTH - 40 },
+        }).setOrigin(0, 0.5)
+      );
+    });
   }
 
   private buildWeapons(y: number) {
@@ -178,14 +222,10 @@ export default class HelpScene extends Phaser.Scene {
   }
 
   private buildBackButton() {
-    const btnBg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 40, 200, 46, 0x111111)
-      .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true });
-    this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 40, '< До меню', {
-      fontSize: '16px', color: '#888', fontFamily: 'monospace',
-    }).setOrigin(0.5);
-    btnBg.on('pointerdown', () => this.scene.start('GameScene'));
-    btnBg.on('pointerover', () => btnBg.setFillStyle(0x222222));
-    btnBg.on('pointerout',  () => btnBg.setFillStyle(0x111111));
+    const arrow = this.add.text(28, 38, '←', {
+      fontSize: '22px', color: '#88ccff', fontFamily: 'monospace',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    arrow.on('pointerdown', () => this.scene.start('GameScene'));
     this.input.keyboard!.on('keydown-ESC', () => this.scene.start('GameScene'));
   }
 }
