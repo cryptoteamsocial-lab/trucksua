@@ -182,22 +182,18 @@ const BULLET_A_ROWS = [
   'ww',
 ];
 
-// Ally bonus pickup — 12×14, scale=3 → 36×42
+// Ally car bonus pickup — small car inside green aura, 12×10, scale=3 → 36×30
 const BONUS_ROWS = [
-  '..KFFFFFFkK..',
-  '.KFFFFFFFFkK.',
-  'KFFfFFFFFffFK',
-  'KFFFHFFFHFFfK',
-  'KFFFHFFFHFFfK',
-  'KFF.FFFFF.FfK',
-  'KFFfFFFFFfFFK',
-  'KFFFFFfFFFFFK',
-  'KFFFFfFFFFFFK',
-  '.KFFF.F.FFFK.',
-  '..KFfFFFfFK..',
-  '...KFFFFFK...',
-  '....KFFFK....',
-  '.....KFK.....',
+  '..VVVVVVVVVV..',
+  '.VVVoooooooVV.',
+  'VVVooOOOOoooVV',
+  'VVoWwwwwwwWoVV',
+  'VVoOOOOOOOoVV.',
+  'VVoOOOOOOOoVV.',
+  'VVoWwwwwwwWoVV',
+  'VVVooOOOOoooVV',
+  '.VVVoooooooVV.',
+  '..VVVVVVVVVV..',
 ];
 
 // Concrete obstacle — 16×10, scale=3 → 48×30
@@ -351,6 +347,61 @@ const MINE_ROWS = [
   '.KDDDDK.',
 ];
 
+// Bomb obstacle (big, high damage) — 10×12, scale=3 → 30×36
+const BOMB_ROWS = [
+  '....KNNK....',
+  '...KNNnNK...',
+  '..KNNNNnNK..',
+  '.KNNNnNNNnK.',
+  'KNNNNNNNNnNK',
+  'KNNnNNNNNnNK',
+  'KNNNNNNNNnNK',
+  'KNNnNNNNNnNK',
+  '.KNNNNNNNnK.',
+  '..KNNNNNnK..',
+  '...KNNNnK...',
+  '....KZZK....',
+];
+
+// Anti-tank hedgehog — X-shaped metal obstacle, 13×13, scale=3 → 39×39
+const HEDGEHOG_ROWS = [
+  'GG.........GG',
+  'GgG.......GgG',
+  '.GgGG...GGgG.',
+  '..GgGGGGGgG..',
+  '...GgGGGgG...',
+  '....GgGgG....',
+  '....GgGgG....',
+  '...GgGGGgG...',
+  '..GgGGGGGgG..',
+  '.GgGG...GGgG.',
+  'GgG.......GgG',
+  'GG.........GG',
+  '.............',
+];
+
+// General Divan boss enemy — 14×18, scale=3 → 42×54
+const GENERAL_ROWS = [
+  '....KDDDDDDK....',
+  '...KDDDdDDdDK...',
+  '...KDDDdDDdDK...',
+  '....KDDDDDDК....',
+  '.....KNNNNNNK...',
+  '....KNNnNNNnNK..',
+  '....KNNENNENnK..',
+  '....KNNnNNNnNK..',
+  '.....KNNNNNNK...',
+  '...KRRRRRRRRRRK.',
+  '..KRRYRRRRRYRRKk',
+  '..KRRRRRRRRRRK..',
+  '..KRRYRRRRRYRRKk',
+  '..KRRRRRRRRRRK..',
+  '...KRRrRRrRRKk..',
+  '...KRrR..RrRKk..',
+  '...KRrR..RrRKk..',
+  '....KRK..KRKk...',
+];
+
 // ─── Exported creator ──────────────────────────────────────────────────────
 export function createPixelTextures(scene: Phaser.Scene) {
   const S = 3; // pixel scale
@@ -377,6 +428,9 @@ export function createPixelTextures(scene: Phaser.Scene) {
   drawPixelArt(scene, 'vehicle_scout', norm(SCOUT_ROWS), S);
   drawPixelArt(scene, 'vehicle_apc', norm(APC_ROWS), S);
   drawPixelArt(scene, 'obs_mine', norm(MINE_ROWS), S);
+  drawPixelArt(scene, 'obs_bomb', norm(BOMB_ROWS), S);
+  drawPixelArt(scene, 'obs_hedgehog', norm(HEDGEHOG_ROWS), S);
+  drawPixelArt(scene, 'general', norm(GENERAL_ROWS), S);
 
   // Tiny explosion particle
   const gfx = scene.make.graphics({ x: 0, y: 0 });

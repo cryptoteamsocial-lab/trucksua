@@ -1,5 +1,5 @@
 import type { SavedData, UpgradeData, VehicleId, Mission, MissionGoalType } from './types';
-import { MISSIONS_POOL, UPGRADE_MAX_LEVELS } from './config';
+import { MISSIONS_POOL, UPGRADE_MAX_LEVELS, MEME_NAMES } from './config';
 
 const KEY = 'steel_road_data';
 
@@ -17,6 +17,7 @@ const defaults: SavedData = {
   missions: [],
   missionsDate: '',
   onboardingDone: false,
+  playerName: '',
 };
 
 export function loadData(): SavedData {
@@ -34,6 +35,7 @@ export function loadData(): SavedData {
       missions: parsed.missions ?? [],
       missionsDate: parsed.missionsDate ?? '',
       onboardingDone: parsed.onboardingDone ?? false,
+      playerName: parsed.playerName ?? '',
     };
   } catch {
     return structuredClone(defaults);
@@ -94,6 +96,29 @@ export function markOnboardingDone(): void {
   saveData(data);
 }
 
+// ─── Player name ───────────────────────────────────────────────────────────────
+export function generateRandomName(): string {
+  return MEME_NAMES[Math.floor(Math.random() * MEME_NAMES.length)];
+}
+
+export function getOrCreatePlayerName(): string {
+  const data = loadData();
+  if (data.playerName) return data.playerName;
+  const name = generateRandomName();
+  data.playerName = name;
+  saveData(data);
+  return name;
+}
+
+export function setPlayerName(name: string): void {
+  const data = loadData();
+  const trimmed = name.trim().slice(0, 24);
+  if (trimmed) {
+    data.playerName = trimmed;
+    saveData(data);
+  }
+}
+
 export function selectVehicle(id: VehicleId): void {
   const data = loadData();
   if (!data.ownedVehicles.includes(id)) return;
@@ -102,14 +127,12 @@ export function selectVehicle(id: VehicleId): void {
 }
 
 // ─── Leaderboard / run record ─────────────────────────────────────────────────
-export function recordRun(coins: number, killed: number, convoy: number): SavedData {
+export function recordRun(coins: number, killed: number, convoy: number, levelsReached = 1): SavedData {
   const data = loadData();
   if (coins > data.bestScore) data.bestScore = coins;
   if (convoy > data.maxConvoy) data.maxConvoy = convoy;
-  data.leaderboard.unshift({
-    coins, killed, convoy,
-    date: new Date().toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }),
-  });
+  const name = data.playerName || generateRandomName();
+  data.leaderboard.unshift({ coins, killed, convoy, name, levelsReached });
   data.leaderboard = data.leaderboard.sort((a, b) => b.coins - a.coins).slice(0, 10);
   saveData(data);
   return data;

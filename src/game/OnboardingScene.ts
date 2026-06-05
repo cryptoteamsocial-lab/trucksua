@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { CONFIG } from './config';
-import { markOnboardingDone } from './storage';
+import { markOnboardingDone, getOrCreatePlayerName, generateRandomName, setPlayerName } from './storage';
 import { createPixelTextures } from './PixelArt';
 
 interface Slide {
@@ -8,6 +8,7 @@ interface Slide {
   body: string;
   icon: string;
   btnLabel: string;
+  isNameSlide?: boolean;
 }
 
 const SLIDES: Slide[] = [
@@ -16,6 +17,13 @@ const SLIDES: Slide[] = [
     title: 'БАВОВНА ROAD',
     body: 'Грай. Допомагай. Перемагай.\n\nАркадний раннер де кожна гра\nдопомагає зібрати реальний\nавтомобіль для ЗСУ.',
     btnLabel: 'Далі →',
+  },
+  {
+    icon: '🪖',
+    title: 'ОБЕРИ ІМʼЯ',
+    body: '',
+    btnLabel: 'Далі →',
+    isNameSlide: true,
   },
   {
     icon: '🚗',
@@ -31,8 +39,8 @@ const SLIDES: Slide[] = [
   },
   {
     icon: '📦',
-    title: 'СКРИНІ',
-    body: 'Після кожного рейду\nвідкривай скрині:\n\n📦 Польова — монети й апгрейди\n🎁 Волонтерська — мерч\n\nМонети використовуй\nдля покращення машини.',
+    title: 'РІВНІ ТА СКРИНІ',
+    body: 'Гра складається з 15 рівнів.\n\nПісля кожного рівня:\n📦 Відкривай скриню\n⚡ Вибирай покращення\n🏆 Доходь до рівня 15!\n\nЧим далі — тим важче.',
     btnLabel: 'Далі →',
   },
   {
@@ -46,11 +54,13 @@ const SLIDES: Slide[] = [
 export default class OnboardingScene extends Phaser.Scene {
   private currentSlide = 0;
   private slideObjects: Phaser.GameObjects.GameObject[] = [];
+  private pendingName = '';
 
   constructor() { super({ key: 'OnboardingScene' }); }
 
   create() {
     if (!this.textures.exists('player')) createPixelTextures(this);
+    this.pendingName = getOrCreatePlayerName();
 
     this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x060a12);
     this.add.rectangle(CONFIG.WIDTH / 2, 0, CONFIG.WIDTH, 4, 0x005bbb);
@@ -85,17 +95,19 @@ export default class OnboardingScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.slideObjects.push(title);
 
-    // Divider
     this.slideObjects.push(this.add.rectangle(cx, 316, 240, 2, 0x223344));
 
-    // Body
-    const body = this.add.text(cx, 450, slide.body, {
-      fontSize: '16px', color: '#aaccdd', fontFamily: 'monospace',
-      align: 'center', lineSpacing: 6,
-    }).setOrigin(0.5);
-    this.slideObjects.push(body);
+    if (slide.isNameSlide) {
+      this.buildNameSlide(cx);
+    } else {
+      const body = this.add.text(cx, 450, slide.body, {
+        fontSize: '16px', color: '#aaccdd', fontFamily: 'monospace',
+        align: 'center', lineSpacing: 6,
+      }).setOrigin(0.5);
+      this.slideObjects.push(body);
+    }
 
-    // Button
+    // Main button
     const isLast = index === SLIDES.length - 1;
     const btnBg = this.add.rectangle(cx, CONFIG.HEIGHT - 110, 260, 60,
       isLast ? 0x005bbb : 0x0a1a2e)
@@ -113,7 +125,6 @@ export default class OnboardingScene extends Phaser.Scene {
     btnBg.on('pointerover', () => btnBg.setFillStyle(isLast ? 0x1177dd : 0x143050));
     btnBg.on('pointerout',  () => btnBg.setFillStyle(isLast ? 0x005bbb : 0x0a1a2e));
 
-    // Skip link (only non-last slides)
     if (!isLast) {
       const skip = this.add.text(cx, CONFIG.HEIGHT - 50, 'Пропустити', {
         fontSize: '13px', color: '#334455', fontFamily: 'monospace',
@@ -124,15 +135,79 @@ export default class OnboardingScene extends Phaser.Scene {
       this.slideObjects.push(skip);
     }
 
-    // Slide-in animation
-    const allObjs = [icon, title, body, btnBg, btnT];
+    const allObjs = [icon, title, btnBg, btnT];
     allObjs.forEach(o => {
       if ('setAlpha' in o) (o as Phaser.GameObjects.GameObject & { setAlpha: (v: number) => void }).setAlpha(0);
     });
     this.tweens.add({ targets: allObjs, alpha: 1, duration: 300, ease: 'Power2' });
   }
 
+  private buildNameSlide(cx: number) {
+    this.slideObjects.push(
+      this.add.text(cx, 348, 'Твоє ігрове імʼя:', {
+        fontSize: '14px', color: '#667788', fontFamily: 'monospace',
+      }).setOrigin(0.5)
+    );
+
+    // Current name display box
+    const nameBox = this.add.rectangle(cx, 396, CONFIG.WIDTH - 60, 48, 0x0d1520)
+      .setStrokeStyle(2, 0x3377cc);
+    const nameTxt = this.add.text(cx, 396, this.pendingName, {
+      fontSize: '16px', color: '#ffffff', fontFamily: 'monospace',
+    }).setOrigin(0.5);
+    this.slideObjects.push(nameBox, nameTxt);
+
+    // Залишити button
+    const keepBg = this.add.rectangle(cx - 100, 460, 160, 40, 0x0d2200)
+      .setStrokeStyle(2, 0x44aa00).setInteractive({ useHandCursor: true });
+    const keepT = this.add.text(cx - 100, 460, '✓ Залишити', {
+      fontSize: '13px', color: '#88ff44', fontFamily: 'monospace',
+    }).setOrigin(0.5);
+    keepBg.on('pointerdown', () => {
+      setPlayerName(this.pendingName);
+      this.nextSlide();
+    });
+    keepBg.on('pointerover', () => keepBg.setFillStyle(0x1a3a00));
+    keepBg.on('pointerout',  () => keepBg.setFillStyle(0x0d2200));
+    this.slideObjects.push(keepBg, keepT);
+
+    // Згенерувати інше button
+    const genBg = this.add.rectangle(cx + 80, 460, 150, 40, 0x0a1a2e)
+      .setStrokeStyle(2, 0x3377cc).setInteractive({ useHandCursor: true });
+    const genT = this.add.text(cx + 80, 460, '🎲 Інше', {
+      fontSize: '13px', color: '#88ccff', fontFamily: 'monospace',
+    }).setOrigin(0.5);
+    genBg.on('pointerdown', () => {
+      this.pendingName = generateRandomName();
+      nameTxt.setText(this.pendingName);
+    });
+    genBg.on('pointerover', () => genBg.setFillStyle(0x143050));
+    genBg.on('pointerout',  () => genBg.setFillStyle(0x0a1a2e));
+    this.slideObjects.push(genBg, genT);
+
+    // Змінити (custom name) button
+    const editBg = this.add.rectangle(cx, 514, CONFIG.WIDTH - 80, 40, 0x111111)
+      .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true });
+    const editT = this.add.text(cx, 514, '✏️ Змінити вручну', {
+      fontSize: '13px', color: '#888888', fontFamily: 'monospace',
+    }).setOrigin(0.5);
+    editBg.on('pointerdown', () => {
+      const input = window.prompt('Введи своє ігрове імʼя (до 24 символів):', this.pendingName);
+      if (input && input.trim()) {
+        this.pendingName = input.trim().slice(0, 24);
+        nameTxt.setText(this.pendingName);
+      }
+    });
+    editBg.on('pointerover', () => editBg.setFillStyle(0x222222));
+    editBg.on('pointerout',  () => editBg.setFillStyle(0x111111));
+    this.slideObjects.push(editBg, editT);
+  }
+
   private nextSlide() {
+    const slide = SLIDES[this.currentSlide];
+    if (slide.isNameSlide) {
+      setPlayerName(this.pendingName);
+    }
     if (this.currentSlide < SLIDES.length - 1) {
       this.currentSlide++;
       this.renderSlide(this.currentSlide);
@@ -142,6 +217,7 @@ export default class OnboardingScene extends Phaser.Scene {
   }
 
   private finish() {
+    setPlayerName(this.pendingName);
     markOnboardingDone();
     this.scene.start('GameScene');
   }

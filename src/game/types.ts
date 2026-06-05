@@ -1,5 +1,5 @@
-export type GameState = 'MENU' | 'PLAYING' | 'VICTORY' | 'GAME_OVER';
-export type EnemyType = 'WALKER' | 'HEAVY' | 'RUNNER' | 'BOMBER';
+export type GameState = 'MENU' | 'PLAYING' | 'LEVEL_COMPLETE' | 'GAME_OVER';
+export type EnemyType = 'WALKER' | 'HEAVY' | 'RUNNER' | 'BOMBER' | 'GENERAL';
 export type LootboxTier = 'field' | 'volunteer' | 'gold';
 export type BonusType = 'ALLY' | 'REPAIR';
 export type UpgradeId = 'engine' | 'armor' | 'weapon' | 'damage';
@@ -17,7 +17,9 @@ export interface LeaderboardEntry {
   coins: number;
   killed: number;
   convoy: number;
-  date: string;
+  name: string;
+  date?: string; // legacy compat
+  levelsReached?: number;
 }
 
 export interface Mission {
@@ -42,6 +44,7 @@ export interface SavedData {
   missions: Mission[];
   missionsDate: string;
   onboardingDone: boolean;
+  playerName: string;
 }
 
 declare global {

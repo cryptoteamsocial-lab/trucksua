@@ -37,7 +37,7 @@ export default class MerchScene extends Phaser.Scene {
     this.add.text(CONFIG.WIDTH / 2, 42, '🛍 МЕРЧ', {
       fontSize: '28px', color: '#FFD700', fontFamily: 'monospace', stroke: '#000', strokeThickness: 5,
     }).setOrigin(0.5).setScrollFactor(0);
-    this.add.text(CONFIG.WIDTH / 2, 78, 'Частина коштів — на підтримку ЗСУ', {
+    this.add.text(CONFIG.WIDTH / 2, 78, 'Прибуток від продажу йде на підтримку ЗСУ', {
       fontSize: '11px', color: '#445566', fontFamily: 'monospace',
     }).setOrigin(0.5).setScrollFactor(0);
     this.add.rectangle(CONFIG.WIDTH / 2, 100, CONFIG.WIDTH - 30, 1, 0x223344).setScrollFactor(0);

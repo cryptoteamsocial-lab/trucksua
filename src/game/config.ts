@@ -20,7 +20,7 @@ export const CONFIG = {
   OBSTACLE_SPAWN_INTERVAL: 3000,
   ALLY_BONUS_INTERVAL_MIN: 8000,
   ALLY_BONUS_INTERVAL_MAX: 15000,
-  LEVEL_DURATION: 90000,
+  LEVEL_DURATION: 180000,
   MAX_ALLIES: 3,
   COLLISION_DAMAGE: 10,
 
@@ -28,6 +28,7 @@ export const CONFIG = {
   COINS_HEAVY: 30,
   COINS_RUNNER: 15,
   COINS_BOMBER: 25,
+  COINS_GENERAL: 100,
   COINS_VICTORY_BASE: 100,
   COINS_PER_ALLY: 10,
 
@@ -47,10 +48,11 @@ export const CONFIG = {
 
 // ─── Enemy display names ───────────────────────────────────────────────────────
 export const ENEMY_NAMES: Record<EnemyType, string> = {
-  WALKER:  'Орк',
-  HEAVY:   'Бронеорк',
-  RUNNER:  'Шустун',
-  BOMBER:  'Чмобік',
+  WALKER:   'Орк',
+  HEAVY:    'Бронеорк',
+  RUNNER:   'Z-Орк',
+  BOMBER:   'Чмобік',
+  GENERAL:  'Генерал Дивану',
 };
 
 // ─── Weapon level names (10 levels) ───────────────────────────────────────────
@@ -201,6 +203,99 @@ export interface MissionDef {
   goal: number;
   reward: number;
 }
+
+// ─── 100 Meme player names ────────────────────────────────────────────────────
+export const MEME_NAMES: string[] = [
+  'Бавовняр_001','Бавовняр_002','Бавовняр_003',
+  'Паляниця_004','Паляниця_005','Паляниця_006',
+  'Козак_007','Козак_008','Козак_009',
+  'ТрО_010','ТрО_011','ТрО_012',
+  'Джавелін_013','Джавелін_014','Джавелін_015',
+  'Бандеромобіль_016','Бандеромобіль_017','Бандеромобіль_018',
+  'Бавовномет_019','Бавовномет_020','Бавовномет_021',
+  'СвятийHIMARS_022','СвятийHIMARS_023','СвятийHIMARS_024',
+  'Тризубець_025','Тризубець_026','Тризубець_027',
+  'ПривидКиєва_028','ПривидКиєва_029','ПривидКиєва_030',
+  'Чорнобаївка_031','Чорнобаївка_032','Чорнобаївка_033',
+  'КіберКозак_034','КіберКозак_035','КіберКозак_036',
+  'ДонатнийДрон_037','ДонатнийДрон_038','ДонатнийДрон_039',
+  'ЗалізнийПікап_040','ЗалізнийПікап_041','ЗалізнийПікап_042',
+  'Волонтер_043','Волонтер_044','Волонтер_045',
+  'Патрончик_046','Патрончик_047','Патрончик_048',
+  'ЛютийКозак_049','ЛютийКозак_050','ЛютийКозак_051',
+  'БронеПаляниця_052','БронеПаляниця_053','БронеПаляниця_054',
+  'ТурбоКозак_055','ТурбоКозак_056','ТурбоКозак_057',
+  'СлаваМобіль_058','СлаваМобіль_059','СлаваМобіль_060',
+  'ХерсонськийКіт_061','ХерсонськийКіт_062','ХерсонськийКіт_063',
+  'КримськийМіст_064','КримськийМіст_065','КримськийМіст_066',
+  'МорськийДрон_067','МорськийДрон_068','МорськийДрон_069',
+  'АзовськийВітер_070','АзовськийВітер_071','АзовськийВітер_072',
+  'ДикийСтеп_073','ДикийСтеп_074','ДикийСтеп_075',
+  'СтеповийВовк_076','СтеповийВовк_077','СтеповийВовк_078',
+  'ВогневийБус_079','ВогневийБус_080','ВогневийБус_081',
+  'СинійЖовтий_082','СинійЖовтий_083','СинійЖовтий_084',
+  'ХлопчикЗПікапа_085','ХлопчикЗПікапа_086','ХлопчикЗПікапа_087',
+  'ЗалужнийФан_088','ЗалужнийФан_089','ЗалужнийФан_090',
+  'СирськийMode_091','СирськийMode_092','СирськийMode_093',
+  'МавікЗБагажника_094','МавікЗБагажника_095','МавікЗБагажника_096',
+  'НічнийЕкіпаж_097','НічнийЕкіпаж_098','НічнийЕкіпаж_099',
+  'ГеройБавовни_100',
+];
+
+// ─── Level progression (15 levels) ────────────────────────────────────────────
+export interface LevelConfig {
+  label: string;
+  baseScale: number;
+  phaseScale: number;
+  enemyTypes: EnemyType[];
+  spawnInterval: number;
+  obstacleInterval: number;
+  bossLevel: boolean;
+}
+
+export const LEVEL_CONFIGS: LevelConfig[] = [
+  { label: 'РІВЕНЬ 1',  baseScale: 0.7, phaseScale: 0.10, enemyTypes: ['WALKER'],                       spawnInterval: 2200, obstacleInterval: 3800, bossLevel: false },
+  { label: 'РІВЕНЬ 2',  baseScale: 0.8, phaseScale: 0.12, enemyTypes: ['WALKER','RUNNER'],               spawnInterval: 2000, obstacleInterval: 3500, bossLevel: false },
+  { label: 'РІВЕНЬ 3',  baseScale: 0.9, phaseScale: 0.14, enemyTypes: ['WALKER','RUNNER','HEAVY'],       spawnInterval: 1900, obstacleInterval: 3200, bossLevel: false },
+  { label: 'РІВЕНЬ 4',  baseScale: 1.0, phaseScale: 0.16, enemyTypes: ['WALKER','RUNNER','HEAVY','BOMBER'], spawnInterval: 1800, obstacleInterval: 3000, bossLevel: false },
+  { label: 'РІВЕНЬ 5',  baseScale: 1.1, phaseScale: 0.18, enemyTypes: ['WALKER','RUNNER','HEAVY','BOMBER'], spawnInterval: 1700, obstacleInterval: 2800, bossLevel: true  },
+  { label: 'РІВЕНЬ 6',  baseScale: 1.2, phaseScale: 0.20, enemyTypes: ['WALKER','RUNNER','HEAVY','BOMBER'], spawnInterval: 1600, obstacleInterval: 2600, bossLevel: false },
+  { label: 'РІВЕНЬ 7',  baseScale: 1.3, phaseScale: 0.22, enemyTypes: ['WALKER','RUNNER','HEAVY','BOMBER'], spawnInterval: 1500, obstacleInterval: 2400, bossLevel: false },
+  { label: 'РІВЕНЬ 8',  baseScale: 1.4, phaseScale: 0.25, enemyTypes: ['WALKER','RUNNER','HEAVY','BOMBER'], spawnInterval: 1400, obstacleInterval: 2200, bossLevel: false },
+  { label: 'РІВЕНЬ 9',  baseScale: 1.5, phaseScale: 0.28, enemyTypes: ['WALKER','RUNNER','HEAVY','BOMBER'], spawnInterval: 1300, obstacleInterval: 2000, bossLevel: false },
+  { label: 'РІВЕНЬ 10', baseScale: 1.7, phaseScale: 0.30, enemyTypes: ['WALKER','RUNNER','HEAVY','BOMBER'], spawnInterval: 1200, obstacleInterval: 1800, bossLevel: true  },
+  { label: 'РІВЕНЬ 11', baseScale: 1.9, phaseScale: 0.33, enemyTypes: ['WALKER','RUNNER','HEAVY','BOMBER'], spawnInterval: 1100, obstacleInterval: 1700, bossLevel: false },
+  { label: 'РІВЕНЬ 12', baseScale: 2.1, phaseScale: 0.35, enemyTypes: ['WALKER','RUNNER','HEAVY','BOMBER'], spawnInterval: 1000, obstacleInterval: 1600, bossLevel: false },
+  { label: 'РІВЕНЬ 13', baseScale: 2.4, phaseScale: 0.38, enemyTypes: ['WALKER','RUNNER','HEAVY','BOMBER'], spawnInterval:  900, obstacleInterval: 1500, bossLevel: false },
+  { label: 'РІВЕНЬ 14', baseScale: 2.7, phaseScale: 0.40, enemyTypes: ['WALKER','RUNNER','HEAVY','BOMBER'], spawnInterval:  800, obstacleInterval: 1400, bossLevel: false },
+  { label: 'РІВЕНЬ 15', baseScale: 3.0, phaseScale: 0.45, enemyTypes: ['WALKER','RUNNER','HEAVY','BOMBER'], spawnInterval:  700, obstacleInterval: 1200, bossLevel: true  },
+];
+
+// ─── Run upgrades (Vampire Survivors style, temporary per run) ─────────────────
+export interface RunUpgradeDef {
+  id: string;
+  icon: string;
+  label: string;
+  desc: string;
+  effect: 'maxhp' | 'speed' | 'damage' | 'firerate' | 'heal' | 'spread' | 'coins';
+  value: number;
+}
+
+export const RUN_UPGRADES: RunUpgradeDef[] = [
+  { id: 'hp30',    icon: '🛡', label: '+30 Макс HP',         desc: 'Підвищує максимальне HP на 30',         effect: 'maxhp',    value: 30  },
+  { id: 'hp50',    icon: '🏰', label: '+50 Макс HP',         desc: 'Підвищує максимальне HP на 50',         effect: 'maxhp',    value: 50  },
+  { id: 'spd40',   icon: '⚡', label: 'Турбіна +40',         desc: 'Збільшує швидкість руху на 40',         effect: 'speed',    value: 40  },
+  { id: 'spd80',   icon: '🏎', label: 'Суперприводи +80',    desc: 'Збільшує швидкість руху на 80',         effect: 'speed',    value: 80  },
+  { id: 'dmg1',    icon: '💥', label: '+1 Урон',             desc: 'Збільшує урон куль на 1',               effect: 'damage',   value: 1   },
+  { id: 'dmg2',    icon: '🚀', label: '+2 Урон',             desc: 'Збільшує урон куль на 2',               effect: 'damage',   value: 2   },
+  { id: 'dmg3',    icon: '☄️', label: '+3 Урон (рідко)',     desc: 'Збільшує урон куль на 3',               effect: 'damage',   value: 3   },
+  { id: 'fire60',  icon: '🔫', label: 'Швидший вогонь -60мс', desc: 'Зменшує інтервал пострілу на 60мс',   effect: 'firerate', value: -60  },
+  { id: 'fire120', icon: '⚡', label: 'Дуже швидкий вогонь', desc: 'Зменшує інтервал пострілу на 120мс',   effect: 'firerate', value: -120 },
+  { id: 'heal25',  icon: '❤️', label: 'Ремонт +25 HP',       desc: 'Миттєво відновлює 25 HP',               effect: 'heal',     value: 25  },
+  { id: 'heal50',  icon: '❤️', label: 'Великий ремонт +50 HP', desc: 'Миттєво відновлює 50 HP',            effect: 'heal',     value: 50  },
+  { id: 'spread',  icon: '🔱', label: 'Потрійний постріл',   desc: 'Всі постріли стають потрійними',        effect: 'spread',   value: 3   },
+  { id: 'coins50', icon: '💰', label: '+50 монет зараз',     desc: 'Миттєво отримуєш 50 монет на рахунок',  effect: 'coins',    value: 50  },
+];
 
 export const MISSIONS_POOL: MissionDef[] = [
   { id: 'kill_10',      label: 'Знищити 10 ворогів',        goalType: 'kill',         goal: 10,  reward: 60  },
