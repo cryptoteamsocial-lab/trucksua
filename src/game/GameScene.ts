@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CONFIG, VEHICLES, LEVEL_CONFIGS, RUN_UPGRADES, getStatFromUpgrade, type RunUpgradeDef } from './config';
+import { CONFIG, VEHICLES, LEVEL_CONFIGS, getStatFromUpgrade, type RunUpgradeDef } from './config';
 import { loadData, addCoins, recordRun, claimDailyReward, updateMissionProgress, getOrCreatePlayerName } from './storage';
 import { createPixelTextures } from './PixelArt';
 import type { GameState, EnemyType } from './types';

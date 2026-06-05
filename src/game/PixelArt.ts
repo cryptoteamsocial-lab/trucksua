@@ -385,7 +385,7 @@ const GENERAL_ROWS = [
   '....KDDDDDDK....',
   '...KDDDdDDdDK...',
   '...KDDDdDDdDK...',
-  '....KDDDDDDК....',
+  '....KDDDDDDK....',
   '.....KNNNNNNK...',
   '....KNNnNNNnNK..',
   '....KNNENNENnK..',
