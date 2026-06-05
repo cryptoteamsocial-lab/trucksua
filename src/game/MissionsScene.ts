@@ -118,14 +118,10 @@ export default class MissionsScene extends Phaser.Scene {
   }
 
   private createBackButton() {
-    const btnBg = this.add.rectangle(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 40, 200, 46, 0x111111)
-      .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true });
-    this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 40, '< До меню', {
-      fontSize: '16px', color: '#888', fontFamily: 'monospace',
-    }).setOrigin(0.5);
-    btnBg.on('pointerdown', () => this.scene.start('GameScene'));
-    btnBg.on('pointerover', () => btnBg.setFillStyle(0x222222));
-    btnBg.on('pointerout', () => btnBg.setFillStyle(0x111111));
+    const arrow = this.add.text(28, 38, '←', {
+      fontSize: '22px', color: '#88ccff', fontFamily: 'monospace',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    arrow.on('pointerdown', () => this.scene.start('GameScene'));
     this.input.keyboard!.on('keydown-ESC', () => this.scene.start('GameScene'));
   }
 }

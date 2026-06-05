@@ -380,6 +380,22 @@ const HEDGEHOG_ROWS = [
   '.............',
 ];
 
+// Dragon tooth obstacle — triangle shape, 10×12, scale=3 → 30×36
+const DRAGON_TOOTH_ROWS = [
+  '....DD....',
+  '...DdDD...',
+  '...DdDdD..',
+  '..DDdDdD..',
+  '..DdDdDdD.',
+  '.DDdDdDdDD',
+  '.DdDdDdDdD',
+  'DDDdDdDdDDD',
+  'DdDdDdDdDdD',
+  'DDDDDDDDDDD',
+  'DdddddddddD',
+  'DDDDDDDDDDD',
+];
+
 // General Divan boss enemy — 14×18, scale=3 → 42×54
 const GENERAL_ROWS = [
   '....KDDDDDDK....',
@@ -430,6 +446,7 @@ export function createPixelTextures(scene: Phaser.Scene) {
   drawPixelArt(scene, 'obs_mine', norm(MINE_ROWS), S);
   drawPixelArt(scene, 'obs_bomb', norm(BOMB_ROWS), S);
   drawPixelArt(scene, 'obs_hedgehog', norm(HEDGEHOG_ROWS), S);
+  drawPixelArt(scene, 'obs_dragon', norm(DRAGON_TOOTH_ROWS), S);
   drawPixelArt(scene, 'general', norm(GENERAL_ROWS), S);
 
   // Tiny explosion particle

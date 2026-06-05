@@ -20,7 +20,7 @@ export const CONFIG = {
   OBSTACLE_SPAWN_INTERVAL: 3000,
   ALLY_BONUS_INTERVAL_MIN: 8000,
   ALLY_BONUS_INTERVAL_MAX: 15000,
-  LEVEL_DURATION: 180000,
+  LEVEL_DURATION: 90000,
   MAX_ALLIES: 3,
   COLLISION_DAMAGE: 10,
 
@@ -87,9 +87,9 @@ export const CHARITY = {
   description: 'Позашляховик для евакуації\nпоранених бійців під Авдіївкою',
   donateUrl: 'https://t.me/bавовнаroad', // placeholder
   history: [
-    { name: 'Toyota Hilux',   date: '12.04.2025', unit: '1-ша ОШБр' },
-    { name: 'Mitsubishi L200', date: '28.03.2025', unit: '3-тя ОШБ' },
-    { name: 'Ford Ranger',    date: '10.03.2025', unit: '80-та ОДШБр' },
+    { name: 'Toyota Hilux',     date: '12.04.2025', unit: '1-ша ОШБр',   desc: 'Пікап для розвідки та логістики' },
+    { name: 'Mitsubishi L200',  date: '28.03.2025', unit: '3-тя ОШБ',    desc: 'Автомобіль евакуації поранених' },
+    { name: 'Ford Ranger',      date: '10.03.2025', unit: '80-та ОДШБр', desc: 'Транспорт для вогневої підтримки' },
   ],
 };
 
@@ -277,7 +277,7 @@ export interface RunUpgradeDef {
   icon: string;
   label: string;
   desc: string;
-  effect: 'maxhp' | 'speed' | 'damage' | 'firerate' | 'heal' | 'spread' | 'coins';
+  effect: 'maxhp' | 'speed' | 'damage' | 'firerate' | 'heal' | 'spread' | 'coins' | 'aoe' | 'himars' | 'pierce' | 'chain' | 'homing' | 'ulti';
   value: number;
 }
 
@@ -295,6 +295,15 @@ export const RUN_UPGRADES: RunUpgradeDef[] = [
   { id: 'heal50',  icon: '❤️', label: 'Великий ремонт +50 HP', desc: 'Миттєво відновлює 50 HP',            effect: 'heal',     value: 50  },
   { id: 'spread',  icon: '🔱', label: 'Потрійний постріл',   desc: 'Всі постріли стають потрійними',        effect: 'spread',   value: 3   },
   { id: 'coins50', icon: '💰', label: '+50 монет зараз',     desc: 'Миттєво отримуєш 50 монет на рахунок',  effect: 'coins',    value: 50  },
+  { id: 'wpn_bandera',  icon: '📦', label: 'Бандеромет',       desc: '+20% урону (прямий постріл)',          effect: 'damage',   value: 2   },
+  { id: 'wpn_bavovna',  icon: '💥', label: 'Бавовномет',        desc: 'Вибуховий постріл AoE',                effect: 'aoe',      value: 1   },
+  { id: 'wpn_palanytsia', icon: '🫓', label: 'Паляниця Mk.2',  desc: '3 пулі веєром',                        effect: 'spread',   value: 3   },
+  { id: 'wpn_javelin',  icon: '🚀', label: 'Джавелінчик',       desc: 'Повільна ракета, великий урон',         effect: 'damage',   value: 5   },
+  { id: 'wpn_himars',   icon: '⚡', label: 'Святий HIMARS',     desc: 'Залп по кількох ворогах',               effect: 'himars',   value: 1   },
+  { id: 'wpn_tryzub',   icon: '🔱', label: 'Тризуб Гніву',      desc: 'Пуля пробиває 3 ворогів',               effect: 'pierce',   value: 3   },
+  { id: 'wpn_chornobaivka', icon: '🔁', label: 'Чорнобаївка',  desc: 'Шанс вибуху після знищення ворога',     effect: 'chain',    value: 1   },
+  { id: 'wpn_ghost',    icon: '👻', label: 'Привид Києва',       desc: 'Частина куль летить до найближчого ворога', effect: 'homing', value: 1 },
+  { id: 'wpn_kara',     icon: '☄️', label: 'Кара Божа',          desc: 'Потужний рідкісний удар по площині',    effect: 'ulti',    value: 1   },
 ];
 
 export const MISSIONS_POOL: MissionDef[] = [

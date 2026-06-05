@@ -31,8 +31,7 @@ interface Particle { sprite: Phaser.GameObjects.Image; vx: number; vy: number; l
 
 // Obstacle damage values
 const OBST_DMG: Record<string, number> = {
-  obs_block: 10, obs_crate: 8, obs_barr: 20,
-  obs_mine: 25, obs_bomb: 40, obs_hedgehog: 15,
+  obs_block: 10, obs_hedgehog: 15, obs_dragon: 20, obs_bomb: 35,
 };
 
 export default class GameScene extends Phaser.Scene {
@@ -82,7 +81,7 @@ export default class GameScene extends Phaser.Scene {
   private playerCoins = 0;
   private playerShootTimer = 0;
   private playerX = CONFIG.WIDTH / 2;
-  private playerY = CONFIG.HEIGHT - 160;
+  private playerY = CONFIG.HEIGHT - 130;
 
   // Input
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -246,22 +245,22 @@ export default class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: demo, y: 208, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
 
     // Info right
-    this.add.text(cx + 20, 132, veh.label.toUpperCase(), {
+    const vehLabelT = this.add.text(cx + 20, 132, veh.label.toUpperCase(), {
       fontSize: '20px', color: '#ffffff', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(22);
 
-    this.add.text(cx + 20, 168, veh.description, {
+    const vehDescT = this.add.text(cx + 20, 168, veh.description, {
       fontSize: '11px', color: '#667788', fontFamily: 'monospace', align: 'center',
     }).setOrigin(0.5).setDepth(22);
 
-    this.add.text(cx + 20, 200, `HP:${veh.baseHp}`, { fontSize: '12px', color: '#44aa66', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
-    this.add.text(cx + 20, 220, `Шв:${veh.baseSpeed}`, { fontSize: '12px', color: '#44aa66', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
-    this.add.text(cx + 20, 240, `${veh.spreadShots > 1 ? `${veh.spreadShots}x постріл` : '1x постріл'}`, { fontSize: '12px', color: '#44aa66', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
+    const vehHpT   = this.add.text(cx + 20, 200, `HP:${veh.baseHp}`, { fontSize: '12px', color: '#44aa66', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
+    const vehSpdT  = this.add.text(cx + 20, 220, `Шв:${veh.baseSpeed}`, { fontSize: '12px', color: '#44aa66', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
+    const vehShotT = this.add.text(cx + 20, 240, `${veh.spreadShots > 1 ? `${veh.spreadShots}x постріл` : '1x постріл'}`, { fontSize: '12px', color: '#44aa66', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
 
     // Donate button (compact)
     const donateBg = this.add.rectangle(cx, 282, CONFIG.WIDTH - 60, 36, 0x0a1a2e).setDepth(21)
       .setStrokeStyle(1, 0x3377cc).setInteractive({ useHandCursor: true });
-    this.add.text(cx, 282, '💙 ПІДТРИМАТИ ЗБІР', { fontSize: '12px', color: '#5588bb', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
+    const donateBtnT = this.add.text(cx, 282, '💙 ПІДТРИМАТИ ЗБІР', { fontSize: '12px', color: '#5588bb', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
     donateBg.on('pointerdown', () => window.open('https://t.me/bavovnaroad', '_blank'));
     donateBg.on('pointerover', () => donateBg.setFillStyle(0x143050));
     donateBg.on('pointerout',  () => donateBg.setFillStyle(0x0a1a2e));
@@ -309,13 +308,14 @@ export default class GameScene extends Phaser.Scene {
       navObjs.push(b, t);
     });
 
-    const ver = this.add.text(cx, CONFIG.HEIGHT - 22, 'Бавовна Road  v2.8', {
+    const ver = this.add.text(cx, CONFIG.HEIGHT - 22, 'Бавовна Road  v2.9', {
       fontSize: '10px', color: '#1a2233', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(22);
 
     this.menuObjects = [
-      bg, title, sub, flagB, flagY, cardBg, donateBg, playBg, playT,
-      demo, statsBg, statsT, ...navObjs, ver,
+      bg, title, sub, flagB, flagY, cardBg, donateBg, donateBtnT, playBg, playT,
+      demo, vehLabelT, vehDescT, vehHpT, vehSpdT, vehShotT,
+      statsBg, statsT, ...navObjs, ver,
     ];
 
     if (dailyReward !== null) {
@@ -400,7 +400,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.playerCoins = 0;
     this.playerX = CONFIG.WIDTH / 2;
-    this.playerY = CONFIG.HEIGHT - 160;
+    this.playerY = CONFIG.HEIGHT - 130;
     this.playerShootTimer = 0;
     this.enemySpawnTimer = 0;
     this.obstacleSpawnTimer = 0;
@@ -713,16 +713,16 @@ export default class GameScene extends Phaser.Scene {
 
     // Obstacle pool changes with level
     let pool: string[];
-    if (lvl <= 3)      pool = ['obs_block', 'obs_block', 'obs_crate', 'obs_barr'];
-    else if (lvl <= 6) pool = ['obs_block', 'obs_crate', 'obs_barr', 'obs_mine', 'obs_hedgehog'];
-    else if (lvl <= 10) pool = ['obs_block', 'obs_crate', 'obs_barr', 'obs_mine', 'obs_hedgehog', 'obs_bomb'];
-    else               pool = ['obs_mine', 'obs_mine', 'obs_hedgehog', 'obs_bomb', 'obs_bomb', 'obs_barr'];
+    if (lvl <= 3)       pool = ['obs_block', 'obs_block', 'obs_block', 'obs_hedgehog'];
+    else if (lvl <= 6)  pool = ['obs_block', 'obs_hedgehog', 'obs_hedgehog', 'obs_dragon'];
+    else if (lvl <= 10) pool = ['obs_block', 'obs_hedgehog', 'obs_dragon', 'obs_dragon', 'obs_bomb'];
+    else                pool = ['obs_hedgehog', 'obs_dragon', 'obs_dragon', 'obs_bomb', 'obs_bomb'];
 
     const key = pool[Math.floor(Math.random() * pool.length)];
     const sprite = this.add.image(x, -40, key).setDepth(3);
 
-    // Pulsing for dangerous obstacles
-    if (key === 'obs_mine' || key === 'obs_bomb') {
+    // Pulsing for bombs only
+    if (key === 'obs_bomb') {
       this.tweens.add({ targets: sprite, scaleX: 1.2, scaleY: 1.2, duration: 400, yoyo: true, repeat: -1 });
     }
 
@@ -747,7 +747,7 @@ export default class GameScene extends Phaser.Scene {
         const dmg = OBST_DMG[o.key] ?? CONFIG.COLLISION_DAMAGE;
         this.damagePlayer(dmg);
         this.spawnParticles(o.sprite.x, o.sprite.y, 'particle_exp', o.key === 'obs_bomb' ? 18 : 6);
-        if (o.key === 'obs_bomb' || o.key === 'obs_mine') this.cameras.main.shake(300, 0.015);
+        if (o.key === 'obs_bomb') this.cameras.main.shake(300, 0.015);
         this.tweens.killTweensOf(o.sprite);
         o.sprite.destroy(); this.obstacles.splice(i, 1); continue;
       }
@@ -899,7 +899,7 @@ export default class GameScene extends Phaser.Scene {
     this.difficultyScale = lvlCfg.baseScale + stage * lvlCfg.phaseScale;
 
     // Boss spawn: on boss levels, spawn GENERAL at 150s (2:30 into level)
-    if (lvlCfg.bossLevel && !this.bossSpawned && this.levelTimer >= 150000) {
+    if (lvlCfg.bossLevel && !this.bossSpawned && this.levelTimer >= 60000) {
       this.bossSpawned = true;
       this.spawnEnemy('GENERAL');
       const bossAlert = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 80, '⚠️ ГЕНЕРАЛ ДИВАНУ!', {
