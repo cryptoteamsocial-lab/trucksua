@@ -930,6 +930,16 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private updateSpawners(delta: number) {
+    // Wave warning: every 20 seconds show a warning
+    const warnSecond = Math.floor(this.levelTimer / 20000);
+    if (warnSecond !== this.lastWaveWarningSecond && this.levelTimer > 0) {
+      this.lastWaveWarningSecond = warnSecond;
+      const warnTxt = this.add.text(CONFIG.WIDTH / 2, 85, '⚠️ ХВИЛЯ!', {
+        fontSize: '20px', color: '#ff8800', fontFamily: 'monospace', stroke: '#000', strokeThickness: 5,
+      }).setOrigin(0.5).setDepth(30);
+      this.tweens.add({ targets: warnTxt, alpha: { from: 1, to: 0 }, y: 75, duration: 2000, onComplete: () => warnTxt.destroy() });
+    }
+
     const lvlCfg = this.getLevelConfig();
 
     // Enemies
