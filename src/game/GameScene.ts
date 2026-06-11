@@ -154,6 +154,23 @@ export default class GameScene extends Phaser.Scene {
     this.createPlayer();
     this.setupInput();
 
+    // Referral bonus (one-time per session)
+    if (!sessionStorage.getItem('refBonusClaimed')) {
+      const tg = (window as any).Telegram?.WebApp;
+      const startParam = tg?.initDataUnsafe?.start_param;
+      if (startParam?.startsWith('ref_')) {
+        sessionStorage.setItem('refBonusClaimed', '1');
+        addCoins(100);
+        this.time.delayedCall(1000, () => {
+          const t = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2, '🎁 +100 монет\nза реферал!', {
+            fontSize: '22px', color: '#ffd700', fontFamily: 'monospace', align: 'center',
+            stroke: '#000', strokeThickness: 4,
+          }).setOrigin(0.5).setDepth(50);
+          this.tweens.add({ targets: t, y: t.y - 80, alpha: 0, duration: 2000, onComplete: () => t.destroy() });
+        });
+      }
+    }
+
     if (this.currentRunLevel > 1) {
       // Resuming from LevelUpScene — skip menu, start immediately
       this.startGame();
@@ -276,12 +293,26 @@ export default class GameScene extends Phaser.Scene {
     const vehShotT = this.add.text(cx + 20, 240, `${veh.spreadShots > 1 ? `${veh.spreadShots}x постріл` : '1x постріл'}`, { fontSize: '12px', color: '#44aa66', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
 
     // Donate button (compact)
-    const donateBg = this.add.rectangle(cx, 282, CONFIG.WIDTH - 60, 36, 0x0a1a2e).setDepth(21)
-      .setStrokeStyle(1, 0x3377cc).setInteractive({ useHandCursor: true });
-    const donateBtnT = this.add.text(cx, 282, '💙 ПІДТРИМАТИ ЗБІР', { fontSize: '12px', color: '#5588bb', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
-    donateBg.on('pointerdown', () => window.open('https://t.me/bavovnaroad', '_blank'));
-    donateBg.on('pointerover', () => donateBg.setFillStyle(0x143050));
-    donateBg.on('pointerout',  () => donateBg.setFillStyle(0x0a1a2e));
+    const donateBg = this.add.rectangle(cx, 282, CONFIG.WIDTH - 60, 36, 0x0a2200).setDepth(21)
+      .setStrokeStyle(1, 0x44aa00).setInteractive({ useHandCursor: true });
+    const donateBtnT = this.add.text(cx, 282, '⚡ ЗАРЯДИТИ ЗБІР — 10 ⭐', { fontSize: '13px', color: '#88ff44', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(22);
+    donateBg.on('pointerdown', () => {
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg?.openInvoice) {
+        tg.openInvoice('https://t.me/bavovnaroad?start=donate10', (status: string) => {
+          if (status === 'paid') {
+            const toast = this.add.text(cx, CONFIG.HEIGHT / 2, 'Дякуємо! ⭐ йдуть на ЗСУ', {
+              fontSize: '16px', color: '#88ff44', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3,
+            }).setOrigin(0.5).setDepth(30);
+            this.tweens.add({ targets: toast, y: CONFIG.HEIGHT / 2 - 60, alpha: 0, duration: 2000, onComplete: () => toast.destroy() });
+          }
+        });
+      } else {
+        window.open('https://t.me/bavovnaroad', '_blank');
+      }
+    });
+    donateBg.on('pointerover', () => donateBg.setFillStyle(0x143a00));
+    donateBg.on('pointerout',  () => donateBg.setFillStyle(0x0a2200));
 
     // ── PLAY button ────────────────────────────────────────────────────────────
     const playBg = this.add.rectangle(cx, 352, CONFIG.WIDTH - 40, 66, 0x005bbb).setDepth(21)
@@ -326,7 +357,7 @@ export default class GameScene extends Phaser.Scene {
       navObjs.push(b, t);
     });
 
-    const ver = this.add.text(cx, CONFIG.HEIGHT - 22, 'Бавовна Road  v2.9', {
+    const ver = this.add.text(cx, CONFIG.HEIGHT - 22, 'Бавовна Road  v3.0', {
       fontSize: '10px', color: '#1a2233', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(22);
 
@@ -1112,23 +1143,80 @@ export default class GameScene extends Phaser.Scene {
       const cx = CONFIG.WIDTH / 2;
 
       const bg = this.add.rectangle(cx, CONFIG.HEIGHT / 2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x1a0000, 0.88).setDepth(D);
-      const title = this.add.text(cx, 200, 'ЗАБІГ ПРОВАЛЕНО', {
-        fontSize: '32px', color: '#ff3333', fontFamily: 'monospace', stroke: '#000', strokeThickness: 6,
+      const title = this.add.text(cx, 56, 'ЗАБІГ ПРОВАЛЕНО', {
+        fontSize: '28px', color: '#ff3333', fontFamily: 'monospace', stroke: '#000', strokeThickness: 6,
       }).setOrigin(0.5).setDepth(D + 1);
       this.tweens.add({ targets: title, scaleX: { from: 1.5, to: 1 }, scaleY: { from: 1.5, to: 1 }, duration: 300, ease: 'Back.Out' });
 
-      this.add.text(cx, 268, `Досягнутий рівень: ${this.currentRunLevel} / 15`, {
-        fontSize: '18px', color: '#ffaa44', fontFamily: 'monospace',
+      // Emotional message
+      let emotionalMsg: string;
+      if (totalKilled > 30) {
+        emotionalMsg = `Твій конвой знищено. Але ти обнулив ${totalKilled} орків.`;
+      } else if (this.currentRunLevel >= 10) {
+        emotionalMsg = `Дійшов до рівня ${this.currentRunLevel}/15. Реванш?`;
+      } else {
+        emotionalMsg = `Конвой з ${this.allies.length + 1} машин — знищено ворогом.`;
+      }
+      this.add.text(cx, 108, emotionalMsg, {
+        fontSize: '13px', color: '#ffaa88', fontFamily: 'monospace', align: 'center',
+        wordWrap: { width: 340 },
       }).setOrigin(0.5).setDepth(D + 1);
 
-      this.add.text(cx, 314,
+      // Stats row
+      this.add.text(cx, 148,
         `💰 ${totalCoins}   ×${totalKilled}   🚗 ${this.allies.length + 1}`,
-        { fontSize: '18px', color: '#cccccc', fontFamily: 'monospace', align: 'center' }
+        { fontSize: '15px', color: '#cccccc', fontFamily: 'monospace', align: 'center' }
       ).setOrigin(0.5).setDepth(D + 1);
 
-      const lootBg = this.add.rectangle(cx, 390, 220, 54, 0x1a1a00).setDepth(D + 1)
-        .setStrokeStyle(3, 0xaaaa00).setInteractive({ useHandCursor: true });
-      this.add.text(cx, 390, '📦 ВІДКРИТИ СКРИНЮ', { fontSize: '16px', color: '#dddd44', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      // Button 1: Continue for 5 Stars
+      const continueBg = this.add.rectangle(cx, 196, CONFIG.WIDTH - 40, 48, 0x0033aa).setDepth(D + 1)
+        .setStrokeStyle(3, 0x88aaff).setInteractive({ useHandCursor: true });
+      this.add.text(cx, 196, 'Продовжити за 5 ⭐', { fontSize: '17px', color: '#ffffff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      continueBg.on('pointerdown', () => {
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg?.openInvoice) {
+          tg.openInvoice('continue_5stars', (status: string) => {
+            if (status === 'paid') {
+              this.scene.start('GameScene', { resumeLevel: this.currentRunLevel, tempUpgrades: this.tempUpgrades, runTotalCoins: totalCoins, runTotalKilled: totalKilled });
+            }
+          });
+        } else {
+          alert('Продовжити за 5 ⭐ (Telegram Stars не доступний)');
+        }
+      });
+      continueBg.on('pointerover', () => continueBg.setFillStyle(0x0055cc));
+      continueBg.on('pointerout',  () => continueBg.setFillStyle(0x0033aa));
+
+      // Button 2: Share to Stories
+      const storiesBg = this.add.rectangle(cx, 254, CONFIG.WIDTH - 60, 42, 0x001133).setDepth(D + 1)
+        .setStrokeStyle(2, 0x3355aa).setInteractive({ useHandCursor: true });
+      this.add.text(cx, 254, '📤 Поділитись у Stories', { fontSize: '14px', color: '#88aaff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      storiesBg.on('pointerdown', () => {
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg?.shareToStory) {
+          tg.shareToStory('https://t.me/bavovnaroad/game', {
+            text: `Я дійшов до рівня ${this.currentRunLevel}/15! 💰${totalCoins} | Грай за ЗСУ @bavovnaroad`
+          });
+        } else {
+          window.open(`https://t.me/share/url?url=https://t.me/bavovnaroad&text=Граю за ЗСУ в Бавовна Road! Рівень ${this.currentRunLevel}/15 🔥`, '_blank');
+        }
+      });
+
+      // Button 3: Challenge friend
+      const challengeBg = this.add.rectangle(cx, 306, CONFIG.WIDTH - 60, 42, 0x110033).setDepth(D + 1)
+        .setStrokeStyle(2, 0x6633aa).setInteractive({ useHandCursor: true });
+      this.add.text(cx, 306, '🔫 Кинути виклик другу', { fontSize: '14px', color: '#cc88ff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      challengeBg.on('pointerdown', () => {
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg?.switchInlineQuery) {
+          tg.switchInlineQuery(`Бавовна Road: я дійшов до рівня ${this.currentRunLevel}/15! 💰${totalCoins} монет. Переб'єш? @bavovnaroad`);
+        }
+      });
+
+      // Button 4: Loot box
+      const lootBg = this.add.rectangle(cx, 358, 200, 40, 0x1a1a00).setDepth(D + 1)
+        .setStrokeStyle(2, 0xaaaa00).setInteractive({ useHandCursor: true });
+      this.add.text(cx, 358, '📦 ВІДКРИТИ СКРИНЮ', { fontSize: '13px', color: '#dddd44', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       lootBg.on('pointerdown', () => {
         this.clearOverlay();
         this.scene.start('LootboxScene', { coins: totalCoins, killed: totalKilled, convoy: this.allies.length + 1, victory: false });
@@ -1136,11 +1224,11 @@ export default class GameScene extends Phaser.Scene {
       lootBg.on('pointerover', () => lootBg.setFillStyle(0x2a2a00));
       lootBg.on('pointerout',  () => lootBg.setFillStyle(0x1a1a00));
 
-      const restartBg = this.add.rectangle(cx, 460, 220, 54, 0xaa0000).setDepth(D + 1)
+      // Button 5: Play again
+      const restartBg = this.add.rectangle(cx, 412, 220, 48, 0xaa0000).setDepth(D + 1)
         .setStrokeStyle(3, 0xff6666).setInteractive({ useHandCursor: true });
-      this.add.text(cx, 460, '▶ ЗІГРАТИ ЩЕ РАЗ', { fontSize: '18px', color: '#fff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      this.add.text(cx, 412, '▶ ЗІГРАТИ ЩЕ РАЗ', { fontSize: '17px', color: '#fff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       restartBg.on('pointerdown', () => {
-        // Reset run state for new run
         this.currentRunLevel = 1;
         this.tempUpgrades = [];
         this.runTotalCoins = 0;
@@ -1150,14 +1238,16 @@ export default class GameScene extends Phaser.Scene {
       restartBg.on('pointerover', () => restartBg.setFillStyle(0xdd2222));
       restartBg.on('pointerout',  () => restartBg.setFillStyle(0xaa0000));
 
-      const garageBg = this.add.rectangle(cx, 526, 200, 46, 0x0a1a2e).setDepth(D + 1)
+      // Button 6: Garage
+      const garageBg = this.add.rectangle(cx, 472, 200, 42, 0x0a1a2e).setDepth(D + 1)
         .setStrokeStyle(2, 0x3377cc).setInteractive({ useHandCursor: true });
-      this.add.text(cx, 526, 'ГАРАЖ', { fontSize: '17px', color: '#88ccff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      this.add.text(cx, 472, 'ГАРАЖ', { fontSize: '16px', color: '#88ccff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       garageBg.on('pointerdown', () => { this.clearOverlay(); this.scene.start('GarageScene'); });
 
-      const menuBg = this.add.rectangle(cx, 584, 180, 44, 0x111111).setDepth(D + 1)
-        .setStrokeStyle(2, 0x444444).setInteractive({ useHandCursor: true });
-      this.add.text(cx, 584, '< Меню', { fontSize: '17px', color: '#888888', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      // Button 7: Menu
+      const menuBg = this.add.rectangle(cx, 524, 160, 36, 0x111111).setDepth(D + 1)
+        .setStrokeStyle(1, 0x444444).setInteractive({ useHandCursor: true });
+      this.add.text(cx, 524, '← Меню', { fontSize: '14px', color: '#888888', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       menuBg.on('pointerdown', () => {
         this.clearOverlay();
         this.currentRunLevel = 1;
@@ -1167,7 +1257,7 @@ export default class GameScene extends Phaser.Scene {
         this.showMenu();
       });
 
-      this.overlayObjects = [bg, title, lootBg, restartBg, garageBg, menuBg];
+      this.overlayObjects = [bg, title, continueBg, storiesBg, challengeBg, lootBg, restartBg, garageBg, menuBg];
     });
   }
 
