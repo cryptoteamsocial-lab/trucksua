@@ -1169,28 +1169,31 @@ export default class GameScene extends Phaser.Scene {
       ).setOrigin(0.5).setDepth(D + 1);
 
       // Button 1: Continue for 5 Stars
-      const continueBg = this.add.rectangle(cx, 196, CONFIG.WIDTH - 40, 48, 0x0033aa).setDepth(D + 1)
-        .setStrokeStyle(3, 0x88aaff).setInteractive({ useHandCursor: true });
-      this.add.text(cx, 196, 'Продовжити за 5 ⭐', { fontSize: '17px', color: '#ffffff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      const continueBg = this.add.rectangle(cx, 360, 300, 56, 0x003399).setDepth(D + 1)
+        .setStrokeStyle(3, 0xffd700).setInteractive({ useHandCursor: true });
+      this.add.text(cx, 360, 'Продовжити за 5 ⭐', { fontSize: '17px', color: '#ffffff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       continueBg.on('pointerdown', () => {
         const tg = (window as any).Telegram?.WebApp;
         if (tg?.openInvoice) {
-          tg.openInvoice('continue_5stars', (status: string) => {
+          tg.openInvoice('stars://pay/5', (status: string) => {
             if (status === 'paid') {
+              this.clearOverlay();
               this.scene.start('GameScene', { resumeLevel: this.currentRunLevel, tempUpgrades: this.tempUpgrades, runTotalCoins: totalCoins, runTotalKilled: totalKilled });
             }
           });
         } else {
-          alert('Продовжити за 5 ⭐ (Telegram Stars не доступний)');
+          // stub: just resume
+          this.clearOverlay();
+          this.scene.start('GameScene', { resumeLevel: this.currentRunLevel, tempUpgrades: this.tempUpgrades, runTotalCoins: totalCoins, runTotalKilled: totalKilled });
         }
       });
       continueBg.on('pointerover', () => continueBg.setFillStyle(0x0055cc));
-      continueBg.on('pointerout',  () => continueBg.setFillStyle(0x0033aa));
+      continueBg.on('pointerout',  () => continueBg.setFillStyle(0x003399));
 
       // Button 2: Share to Stories
-      const storiesBg = this.add.rectangle(cx, 254, CONFIG.WIDTH - 60, 42, 0x001133).setDepth(D + 1)
-        .setStrokeStyle(2, 0x3355aa).setInteractive({ useHandCursor: true });
-      this.add.text(cx, 254, '📤 Поділитись у Stories', { fontSize: '14px', color: '#88aaff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      const storiesBg = this.add.rectangle(cx, 420, 260, 44, 0x001a33).setDepth(D + 1)
+        .setStrokeStyle(2, 0x3377cc).setInteractive({ useHandCursor: true });
+      this.add.text(cx, 420, '📤 Поділитись у Stories', { fontSize: '14px', color: '#88aaff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       storiesBg.on('pointerdown', () => {
         const tg = (window as any).Telegram?.WebApp;
         if (tg?.shareToStory) {
@@ -1203,9 +1206,9 @@ export default class GameScene extends Phaser.Scene {
       });
 
       // Button 3: Challenge friend
-      const challengeBg = this.add.rectangle(cx, 306, CONFIG.WIDTH - 60, 42, 0x110033).setDepth(D + 1)
-        .setStrokeStyle(2, 0x6633aa).setInteractive({ useHandCursor: true });
-      this.add.text(cx, 306, '🔫 Кинути виклик другу', { fontSize: '14px', color: '#cc88ff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      const challengeBg = this.add.rectangle(cx, 470, 260, 44, 0x1a0033).setDepth(D + 1)
+        .setStrokeStyle(2, 0x7733cc).setInteractive({ useHandCursor: true });
+      this.add.text(cx, 470, '🔫 Кинути виклик другу', { fontSize: '14px', color: '#cc88ff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       challengeBg.on('pointerdown', () => {
         const tg = (window as any).Telegram?.WebApp;
         if (tg?.switchInlineQuery) {
@@ -1214,9 +1217,9 @@ export default class GameScene extends Phaser.Scene {
       });
 
       // Button 4: Loot box
-      const lootBg = this.add.rectangle(cx, 358, 200, 40, 0x1a1a00).setDepth(D + 1)
+      const lootBg = this.add.rectangle(cx, 520, 220, 44, 0x1a1a00).setDepth(D + 1)
         .setStrokeStyle(2, 0xaaaa00).setInteractive({ useHandCursor: true });
-      this.add.text(cx, 358, '📦 ВІДКРИТИ СКРИНЮ', { fontSize: '13px', color: '#dddd44', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      this.add.text(cx, 520, '📦 ВІДКРИТИ СКРИНЮ', { fontSize: '13px', color: '#dddd44', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       lootBg.on('pointerdown', () => {
         this.clearOverlay();
         this.scene.start('LootboxScene', { coins: totalCoins, killed: totalKilled, convoy: this.allies.length + 1, victory: false });
@@ -1225,9 +1228,9 @@ export default class GameScene extends Phaser.Scene {
       lootBg.on('pointerout',  () => lootBg.setFillStyle(0x1a1a00));
 
       // Button 5: Play again
-      const restartBg = this.add.rectangle(cx, 412, 220, 48, 0xaa0000).setDepth(D + 1)
+      const restartBg = this.add.rectangle(cx, 572, 220, 44, 0xaa0000).setDepth(D + 1)
         .setStrokeStyle(3, 0xff6666).setInteractive({ useHandCursor: true });
-      this.add.text(cx, 412, '▶ ЗІГРАТИ ЩЕ РАЗ', { fontSize: '17px', color: '#fff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      this.add.text(cx, 572, '▶ ЗІГРАТИ ЩЕ РАЗ', { fontSize: '17px', color: '#fff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       restartBg.on('pointerdown', () => {
         this.currentRunLevel = 1;
         this.tempUpgrades = [];
@@ -1239,15 +1242,15 @@ export default class GameScene extends Phaser.Scene {
       restartBg.on('pointerout',  () => restartBg.setFillStyle(0xaa0000));
 
       // Button 6: Garage
-      const garageBg = this.add.rectangle(cx, 472, 200, 42, 0x0a1a2e).setDepth(D + 1)
+      const garageBg = this.add.rectangle(cx, 620, 180, 38, 0x0a1a2e).setDepth(D + 1)
         .setStrokeStyle(2, 0x3377cc).setInteractive({ useHandCursor: true });
-      this.add.text(cx, 472, 'ГАРАЖ', { fontSize: '16px', color: '#88ccff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      this.add.text(cx, 620, 'ГАРАЖ', { fontSize: '16px', color: '#88ccff', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       garageBg.on('pointerdown', () => { this.clearOverlay(); this.scene.start('GarageScene'); });
 
       // Button 7: Menu
-      const menuBg = this.add.rectangle(cx, 524, 160, 36, 0x111111).setDepth(D + 1)
+      const menuBg = this.add.rectangle(cx, 664, 150, 36, 0x111111).setDepth(D + 1)
         .setStrokeStyle(1, 0x444444).setInteractive({ useHandCursor: true });
-      this.add.text(cx, 524, '← Меню', { fontSize: '14px', color: '#888888', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
+      this.add.text(cx, 664, '← Меню', { fontSize: '14px', color: '#888888', fontFamily: 'monospace' }).setOrigin(0.5).setDepth(D + 2);
       menuBg.on('pointerdown', () => {
         this.clearOverlay();
         this.currentRunLevel = 1;
