@@ -31,7 +31,7 @@ interface Particle { sprite: Phaser.GameObjects.Image; vx: number; vy: number; l
 
 // Obstacle damage values
 const OBST_DMG: Record<string, number> = {
-  obs_block: 10, obs_hedgehog: 15, obs_dragon: 20, obs_bomb: 35,
+  obs_block: 15, obs_hedgehog: 20, obs_dragon: 25, obs_bomb: 50,
 };
 
 export default class GameScene extends Phaser.Scene {
@@ -110,6 +110,22 @@ export default class GameScene extends Phaser.Scene {
   private menuObjects: Phaser.GameObjects.GameObject[] = [];
   private overlayObjects: Phaser.GameObjects.GameObject[] = [];
 
+  // Combo/streak
+  private streakCount = 0;
+  private streakMultiplier = 1;
+  private hudStreakText!: Phaser.GameObjects.Text;
+
+  // Wave warning
+  private waveWarningShown = false;
+  private lastWaveWarningSecond = -1;
+
+  // Random events
+  private randomEventTimer = 0;
+  private randomEventInterval = 0;
+  private airRaidActive = false;
+  private airRaidTimer = 0;
+  private enemySpeedMultiplier = 1;
+
   constructor() { super({ key: 'GameScene' }); }
 
   // Called before create() when scene is (re)started with data
@@ -187,6 +203,7 @@ export default class GameScene extends Phaser.Scene {
     this.hudProgressBar = this.add.rectangle(CONFIG.WIDTH / 2 - 155, 57, 0, 9, CONFIG.COLORS.PROGRESS).setDepth(12).setOrigin(0, 0.5);
     this.hudProgressText = this.add.text(CONFIG.WIDTH - 8, 48, '0%', { fontSize: '12px', color: '#FFD700', fontFamily: 'monospace' }).setDepth(12).setOrigin(1, 0);
     this.hudTimerText = this.add.text(CONFIG.WIDTH / 2, 48, '3:00', { fontSize: '13px', color: '#888888', fontFamily: 'monospace' }).setDepth(12).setOrigin(0.5, 0);
+    this.hudStreakText = this.add.text(120, 36, '', { fontSize: '13px', color: '#FFD700', fontFamily: 'monospace', stroke: '#000', strokeThickness: 3 }).setDepth(12).setOrigin(0, 0.5).setVisible(false);
     this.setHudVisible(false);
   }
 
@@ -195,6 +212,7 @@ export default class GameScene extends Phaser.Scene {
       this.hudConvoyText, this.hudProgressBg, this.hudProgressBar, this.hudProgressText,
       this.hudTimerText, this.hudLevelText,
     ].forEach(o => o.setVisible(v));
+    if (!v) this.hudStreakText.setVisible(false);
   }
 
   private createPlayer() {
@@ -378,6 +396,7 @@ export default class GameScene extends Phaser.Scene {
         case 'spread':   this.playerSpreadShots = Math.max(this.playerSpreadShots, u.value); break;
         case 'heal':     /* applied after HP init below */ break;
         case 'coins':    /* applied once at LevelUpScene */ break;
+        default: break;
       }
     }
 
@@ -411,6 +430,15 @@ export default class GameScene extends Phaser.Scene {
     this.difficultyScale = 1;
     this.bossSpawned = false;
     this.allyBonusInterval = Phaser.Math.Between(CONFIG.ALLY_BONUS_INTERVAL_MIN, CONFIG.ALLY_BONUS_INTERVAL_MAX);
+    this.streakCount = 0;
+    this.streakMultiplier = 1;
+    this.waveWarningShown = false;
+    this.lastWaveWarningSecond = -1;
+    this.randomEventTimer = 0;
+    this.randomEventInterval = Phaser.Math.Between(25000, 32000);
+    this.airRaidActive = false;
+    this.airRaidTimer = 0;
+    this.enemySpeedMultiplier = 1;
 
     // Destroy all live objects
     this.bullets.forEach(b => b.sprite.destroy());
@@ -449,6 +477,7 @@ export default class GameScene extends Phaser.Scene {
     this.updateParticles(delta);
     this.updateSpawners(delta);
     this.updateLevel(delta);
+    this.updateRandomEvents(delta);
     this.updateHUD();
   }
 
@@ -558,20 +587,20 @@ export default class GameScene extends Phaser.Scene {
       else type = 'WALKER';
     }
 
-    let hp = 2, speed = 120 * this.difficultyScale, coins = CONFIG.COINS_WALKER;
+    let hp = 4, speed = 180 * this.difficultyScale * this.enemySpeedMultiplier, coins = CONFIG.COINS_WALKER;
     let key = 'walker';
     let vx = 0;
 
     switch (type) {
       case 'HEAVY':
-        hp = 5; speed = 65 * this.difficultyScale; coins = CONFIG.COINS_HEAVY; key = 'heavy'; break;
+        hp = 10; speed = 85 * this.difficultyScale * this.enemySpeedMultiplier; coins = CONFIG.COINS_HEAVY; key = 'heavy'; break;
       case 'RUNNER':
-        hp = 1; speed = 260 * this.difficultyScale; coins = CONFIG.COINS_RUNNER; key = 'runner';
+        hp = 2; speed = 360 * this.difficultyScale * this.enemySpeedMultiplier; coins = CONFIG.COINS_RUNNER; key = 'runner';
         vx = Phaser.Math.FloatBetween(-80, 80); break;
       case 'BOMBER':
-        hp = 3; speed = 80 * this.difficultyScale; coins = CONFIG.COINS_BOMBER; key = 'bomber'; break;
+        hp = 6; speed = 110 * this.difficultyScale * this.enemySpeedMultiplier; coins = CONFIG.COINS_BOMBER; key = 'bomber'; break;
       case 'GENERAL':
-        hp = 15; speed = 50 * this.difficultyScale; coins = CONFIG.COINS_GENERAL; key = 'general'; break;
+        hp = 20; speed = 65 * this.difficultyScale * this.enemySpeedMultiplier; coins = CONFIG.COINS_GENERAL; key = 'general'; break;
     }
 
     const sprite = this.add.image(0, 0, key);
@@ -622,13 +651,24 @@ export default class GameScene extends Phaser.Scene {
 
     e.container.destroy(); e.hpBar?.destroy(); e.hpBarBg?.destroy();
 
-    this.playerCoins += coins;
+    this.streakCount++;
+    if (this.streakCount >= 5 && this.streakMultiplier < 2) {
+      this.streakMultiplier = 2;
+      const comboTxt = this.add.text(CONFIG.WIDTH / 2, 90, '+x2 КОМБО!', {
+        fontSize: '22px', color: '#FFD700', fontFamily: 'monospace', stroke: '#000', strokeThickness: 5,
+      }).setOrigin(0.5).setDepth(30);
+      this.tweens.add({ targets: comboTxt, y: 70, alpha: 0, duration: 1800, onComplete: () => comboTxt.destroy() });
+    }
+
+    const earnedCoins = coins * this.streakMultiplier;
+    this.playerCoins += earnedCoins;
     this.enemiesKilled++;
     this.missionKillCount++;
     if (type === 'HEAVY' || type === 'GENERAL') this.missionHeavyCount++;
     if (type === 'BOMBER') this.missionBomberCount++;
 
-    const txt = this.add.text(nx, ny, `+${coins}`, {
+    const coinLabel = this.streakMultiplier > 1 ? `+${earnedCoins}(x${this.streakMultiplier})` : `+${earnedCoins}`;
+    const txt = this.add.text(nx, ny, coinLabel, {
       fontSize: '15px', color: '#FFD700', fontFamily: 'monospace',
     }).setOrigin(0.5).setDepth(15);
     this.tweens.add({ targets: txt, y: ny - 55, alpha: 0, duration: 800, onComplete: () => txt.destroy() });
@@ -847,6 +887,48 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
+  private updateRandomEvents(delta: number) {
+    this.randomEventTimer += delta;
+
+    // Air raid: enemies already active get speed multiplier update handled via enemySpeedMultiplier
+    if (this.airRaidActive) {
+      this.airRaidTimer -= delta;
+      if (this.airRaidTimer <= 0) {
+        this.airRaidActive = false;
+        this.enemySpeedMultiplier = 1;
+      }
+    }
+
+    if (this.randomEventTimer >= this.randomEventInterval) {
+      this.randomEventTimer = 0;
+      this.randomEventInterval = Phaser.Math.Between(25000, 32000);
+      const event = Math.random() < 0.5 ? 'airRaid' : 'reinforcement';
+
+      if (event === 'airRaid') {
+        // Speed up all existing enemies by 1.5x
+        this.airRaidActive = true;
+        this.airRaidTimer = 8000;
+        this.enemySpeedMultiplier = 1.5;
+        for (const e of this.enemies) {
+          e.speed *= 1.5;
+        }
+        const alertTxt = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 60, '🚨 ПОВІТРЯНА ТРИВОГА', {
+          fontSize: '20px', color: '#ff4444', fontFamily: 'monospace', stroke: '#000', strokeThickness: 5,
+        }).setOrigin(0.5).setDepth(30);
+        this.tweens.add({ targets: alertTxt, alpha: { from: 1, to: 0 }, duration: 2000, onComplete: () => alertTxt.destroy() });
+      } else {
+        // Reinforcement: spawn 3 ally bonuses
+        const reinforceTxt = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 60, '🚁 ПІДКРІПЛЕННЯ!', {
+          fontSize: '20px', color: '#44ff44', fontFamily: 'monospace', stroke: '#000', strokeThickness: 5,
+        }).setOrigin(0.5).setDepth(30);
+        this.tweens.add({ targets: reinforceTxt, alpha: { from: 1, to: 0 }, duration: 2000, onComplete: () => reinforceTxt.destroy() });
+        this.spawnAllyBonus('ally');
+        this.time.delayedCall(400, () => { if (this.state === 'PLAYING') this.spawnAllyBonus('ally'); });
+        this.time.delayedCall(800, () => { if (this.state === 'PLAYING') this.spawnAllyBonus('ally'); });
+      }
+    }
+  }
+
   private updateSpawners(delta: number) {
     const lvlCfg = this.getLevelConfig();
 
@@ -899,7 +981,7 @@ export default class GameScene extends Phaser.Scene {
     this.difficultyScale = lvlCfg.baseScale + stage * lvlCfg.phaseScale;
 
     // Boss spawn: on boss levels, spawn GENERAL at 150s (2:30 into level)
-    if (lvlCfg.bossLevel && !this.bossSpawned && this.levelTimer >= 60000) {
+    if (lvlCfg.bossLevel && !this.bossSpawned && this.levelTimer >= 45000) {
       this.bossSpawned = true;
       this.spawnEnemy('GENERAL');
       const bossAlert = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 80, '⚠️ ГЕНЕРАЛ ДИВАНУ!', {
@@ -919,6 +1001,11 @@ export default class GameScene extends Phaser.Scene {
     this.hudCoinsText.setText(`$ ${this.playerCoins}`);
     this.hudConvoyText.setText(`[=] ${this.allies.length + 1}`);
     this.hudLevelText.setText(`РІВ ${this.currentRunLevel}`);
+    if (this.streakMultiplier > 1) {
+      this.hudStreakText.setText(`x${this.streakMultiplier}`).setVisible(true);
+    } else {
+      this.hudStreakText.setVisible(false);
+    }
     const prog = Math.min(this.levelTimer / CONFIG.LEVEL_DURATION, 1);
     this.hudProgressBar.setSize(310 * prog, 9);
     this.hudProgressText.setText(`${Math.floor(prog * 100)}%`);
@@ -930,6 +1017,8 @@ export default class GameScene extends Phaser.Scene {
   private damagePlayer(amount: number) {
     this.playerHp = Math.max(0, this.playerHp - amount);
     this.cameras.main.flash(180, 180, 0, 0, true);
+    this.streakCount = 0;
+    this.streakMultiplier = 1;
     if (this.playerHp <= 0) this.triggerGameOver();
   }
 
