@@ -618,18 +618,18 @@ export default class GameScene extends Phaser.Scene {
       else type = 'WALKER';
     }
 
-    let hp = 4, speed = 180 * this.difficultyScale * this.enemySpeedMultiplier, coins = CONFIG.COINS_WALKER;
+    let hp = 2, speed = 180 * this.difficultyScale * this.enemySpeedMultiplier, coins = CONFIG.COINS_WALKER;
     let key = 'walker';
     let vx = 0;
 
     switch (type) {
       case 'HEAVY':
-        hp = 10; speed = 85 * this.difficultyScale * this.enemySpeedMultiplier; coins = CONFIG.COINS_HEAVY; key = 'heavy'; break;
+        hp = 6; speed = 85 * this.difficultyScale * this.enemySpeedMultiplier; coins = CONFIG.COINS_HEAVY; key = 'heavy'; break;
       case 'RUNNER':
-        hp = 2; speed = 360 * this.difficultyScale * this.enemySpeedMultiplier; coins = CONFIG.COINS_RUNNER; key = 'runner';
+        hp = 1; speed = 360 * this.difficultyScale * this.enemySpeedMultiplier; coins = CONFIG.COINS_RUNNER; key = 'runner';
         vx = Phaser.Math.FloatBetween(-80, 80); break;
       case 'BOMBER':
-        hp = 6; speed = 110 * this.difficultyScale * this.enemySpeedMultiplier; coins = CONFIG.COINS_BOMBER; key = 'bomber'; break;
+        hp = 4; speed = 110 * this.difficultyScale * this.enemySpeedMultiplier; coins = CONFIG.COINS_BOMBER; key = 'bomber'; break;
       case 'GENERAL':
         hp = 20; speed = 65 * this.difficultyScale * this.enemySpeedMultiplier; coins = CONFIG.COINS_GENERAL; key = 'general'; break;
     }
